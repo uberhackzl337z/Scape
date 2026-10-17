@@ -24,6 +24,10 @@ try{
  await Promise.all([earn(a),earn(b)]);const total=me(a).coins+me(b).coins;assert.ok(total>=20);console.log('PASS: two clients earned wager coins through gathering and banking.');
  const duel=await agree(a,b);assert.equal(duel.pot,20);await until(()=>a.state.duels.some(d=>d.id===duel.id&&d.phase==='active'));
  await drive(a,()=>({x:me(b).x,y:me(b).y}),()=>a.state.duels.some(d=>d.id===duel.id&&d.phase==='finished'),{weapon:'axe'},12000);
+ // Each socket receives snapshots independently. Observe the same completed duel
+ // on the loser before asserting its losses; coin totals alone can match an
+ // older active snapshot whose stake was already escrowed.
+ await until(()=>b.state.duels.some(d=>d.id===duel.id&&d.phase==='finished'));
  const result=a.state.duels.find(d=>d.id===duel.id);assert.equal(result.winnerId,a.id);await until(()=>me(a).coins+me(b).coins===total);assert.equal(me(a).duelWins,1);assert.equal(me(b).duelLosses,1);console.log('PASS: explicit consent, countdown, weapon knockout, single pot payout, and coin conservation.');
  await earn(b);const beforeA=me(a).coins,beforeB=me(b).coins;await agree(a,b);
  await until(async()=>{try{const saved=await readSave();return saved.escrows.length===1&&saved.profiles[a.token].coins===beforeA-10&&saved.profiles[b.token].coins===beforeB-10;}catch{return false;}});

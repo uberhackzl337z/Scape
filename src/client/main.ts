@@ -5,6 +5,7 @@ import { paintBiomes, biomeAt } from './terrain-view.js';
 import { ElementView } from './element-view.js';
 import { MAP, World, WEAPONS, ENEMIES, bestWeapon, inBossArena, count, haulXp, distance, zone, level, xpForLevel, type WeaponId, type Snapshot, type Input, type Node, type Raider } from '../shared/world.js';
 import { RESOURCES, RESOURCE_IDS, weaponSkill, skillXp } from '../shared/skills.js';
+import { ActorMotion } from './actor-motion.js';
 import { CombatView } from './combat-view.js';
 import { DuelView } from './duel-view.js';
 import { DUEL_RULES } from '../shared/duels.js';
@@ -45,10 +46,9 @@ let target: {
     x: number;
     y: number;
 } | undefined;
-const smoothed = new Map<string, {
-    x: number;
-    y: number;
-}>();
+const motion = new ActorMotion();
+const smoothed = motion.positions;
+let vignette: CanvasGradient;
 const me = () => snapshot.players.find(p => p.id === selfId);
 const dialogOpen = () => !!document.querySelector('dialog[open]');
 const townView = new TownView(message => {
@@ -360,7 +360,10 @@ function sendInput() {
         socket.send(JSON.stringify({ type: 'input', ...input() }));
 }
 setInterval(sendInput, 50);
-function text(id: string, value: string | number) { $(id).textContent = String(value); }
+function text(id: string, value: string | number) {
+    const element = $(id), next = String(value);
+    if (element.textContent !== next) element.textContent = next;
+}
 function updateHud() {
     const p = me();
     if (!p)
@@ -481,7 +484,12 @@ function updateHud() {
             toast(p.message);
     }
 }
-function resize() { const box = canvas.getBoundingClientRect(); width = box.width; height = box.height; dpr = Math.min(devicePixelRatio || 1, 2); canvas.width = Math.round(width * dpr); canvas.height = Math.round(height * dpr); zoom = Math.max(.62, Math.min(1, width / 900)); }
+function resize() { const box = canvas.getBoundingClientRect(); width = box.width; height = box.height; dpr = Math.min(devicePixelRatio || 1, 2); canvas.width = Math.round(width * dpr); canvas.height = Math.round(height * dpr); zoom = Math.max(.62, Math.min(1, width / 900));
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    vignette = ctx.createRadialGradient(width / 2, height / 2, width * .15, width / 2, height / 2, Math.max(width, height) * .75);
+    vignette.addColorStop(0, '#07110b00');
+    vignette.addColorStop(1, '#07110b80');
+}
 new ResizeObserver(resize).observe(canvas);
 resize();
 function circle(x: number, y: number, r: number, fill: string, stroke?: string) {
@@ -871,19 +879,7 @@ function frame(time: number) {
     lastFrame = time;
     now = Date.now();
     const p = me();
-    for (const id of smoothed.keys())
-        if (![...snapshot.players, ...snapshot.raiders].some(a => a.id === id))
-            smoothed.delete(id);
-    for (const a of [...snapshot.players, ...snapshot.raiders]) {
-        const pos = smoothed.get(a.id) ?? { x: a.x, y: a.y };
-        if (distance(pos, a) > 160) {
-            pos.x = a.x;
-            pos.y = a.y;
-        }
-        pos.x += (a.x - pos.x) * (1 - Math.exp(-16 * dt));
-        pos.y += (a.y - pos.y) * (1 - Math.exp(-16 * dt));
-        smoothed.set(a.id, pos);
-    }
+    motion.update(snapshot.players, snapshot.raiders, dt);
     if (p) {
         const pos = smoothed.get(p.id)!;
         if (distance(camera, pos) > 450)
@@ -949,9 +945,6 @@ function frame(time: number) {
     combatView.foreground(snapshot, now);
     elementView.effects(snapshot, now);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const vignette = ctx.createRadialGradient(width / 2, height / 2, width * .15, width / 2, height / 2, Math.max(width, height) * .75);
-    vignette.addColorStop(0, '#07110b00');
-    vignette.addColorStop(1, '#07110b80');
     ctx.fillStyle = vignette;
     ctx.fillRect(0, 0, width, height);
     drawMini();
