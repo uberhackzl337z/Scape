@@ -29,6 +29,7 @@ Keep new module filenames descriptive and in kebab-case. Use **Scape** in player
 - [Hosting](HOSTING.md): the separate always-on game-server requirement.
 - [Validation](../VALIDATION.md): recorded checks and their limits.
 - [Rendering performance](PERFORMANCE.md): measured interpolation costs, caching and profiling limits.
+- [Gathering animations](GATHERING_ANIMATIONS.md): skill tools, shared action state and cancellation behavior.
 - [Release assessment](RELEASE_PLAN.md): historical local-test packaging and distribution research; check its recorded date.
 
 ## Keeping the browser game light
