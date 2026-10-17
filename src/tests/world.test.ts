@@ -250,7 +250,7 @@ test('old saved profiles receive combat defaults without losing gathering progre
     assert.equal(p.combatXp, 0);
     assert.equal(p.xp.ore, 84);
 });
-test('gathering obeys range, cooldown, capacity, stock, and awards no field XP', () => {
+test('gathering obeys range, cooldown and stock with no twelve-resource cap or field XP', () => {
     const world = new World();
     const p = createPlayer('p');
     world.players.set(p.id, p);
@@ -267,8 +267,8 @@ test('gathering obeys range, cooldown, capacity, stock, and awards no field XP',
     assert.equal(count(p.bag), 1, 'cooldown applies');
     p.bag = { wood: 12, ore: 0 };
     world.interact(p, 3000);
-    assert.equal(count(p.bag), 12);
-    assert.equal(n.stock, 5);
+    assert.equal(count(p.bag), 13);
+    assert.equal(n.stock, 4);
     p.bag = { wood: 0, ore: 0 };
     n.stock = 0;
     world.nodes = world.nodes.filter(o => o.id === n.id);
@@ -338,13 +338,13 @@ test('death drops the haul, keeps banked progress, and respawns after three seco
     assert.equal(p.x, 170);
     assert.equal(p.banked.wood, 6);
 });
-test('loot recovery does not overfill bags or duplicate resources', () => {
+test('loot recovery takes the entire dropped haul without a carrying cap or duplication', () => {
     const world = new World();
     const p = createPlayer('p');
     p.bag = { wood: 10, ore: 0 };
     world.loot.push({ id: 'l', x: p.x, y: p.y, bag: { wood: 1, ore: 4 }, expires: 10000 });
     world.interact(p, 1000);
-    assert.equal(count(p.bag), 12);
-    assert.equal(count(world.loot[0].bag), 3);
+    assert.equal(count(p.bag), 15);
+    assert.equal(count(world.loot[0].bag), 0);
     assert.equal(count(p.bag) + count(world.loot[0].bag), 15);
 });

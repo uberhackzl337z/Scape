@@ -1,3 +1,4 @@
+import { renderBag } from './bag-view.js';
 import { CONTRACTS, complete, unlocked } from '../shared/contracts.js';
 import { ABILITIES } from '../shared/combat.js';
 import { gearStats } from '../shared/equipment.js';
@@ -115,11 +116,6 @@ const duelView = new DuelView(message => {
         socket.send(JSON.stringify({ type: 'duel', ...message }));
 });
 const slots = $('bag-slots');
-for (let i = 0; i < MAP.capacity; i++) {
-    const slot = document.createElement('div');
-    slot.className = 'slot';
-    slots.append(slot);
-}
 function store(key: string, value?: string) {
     try {
         if (value !== undefined) {
@@ -428,29 +424,15 @@ function updateHud() {
         const warning = snapshot.warnings.find(w => w.source === boss.id);
         text('boss-phase', boss.hp <= 0 ? `Defeated · returns in ${Math.max(1, Math.ceil((boss.respawnAt - snapshot.time) / 1000))}s` : warning ? `${warning.kind === 'fan' ? 'BOLT FAN · SIDESTEP' : 'GROUND SLAM · DODGE'} · ${Math.max(0, (warning.at - snapshot.time) / 1000).toFixed(1)}s` : boss.hp < 325 ? 'ENRAGED · FASTER ATTACKS' : 'WATCH THE WARNING ZONES');
     }
-    text('bag-count', `${count(p.bag)} / ${MAP.capacity}`);
-    text('wood-count', p.bag.wood);
-    text('ore-count', p.bag.ore);
-    text('haul-xp', `${haulXp(p.bag)} XP`);
-    text('other-count', count(p.bag) - p.bag.wood - p.bag.ore);
+    text('bag-count', `${count(p.bag).toLocaleString()} resources`);
+    text('wood-count', p.bag.wood.toLocaleString());
+    text('ore-count', p.bag.ore.toLocaleString());
+    text('haul-xp', `${haulXp(p.bag).toLocaleString()} XP`);
+    text('other-count', (count(p.bag) - p.bag.wood - p.bag.ore).toLocaleString());
     const bagKey = JSON.stringify(p.bag);
     if (bagKey !== lastBag) {
         lastBag = bagKey;
-        const gathered = RESOURCE_IDS.flatMap(r => Array.from({ length: p.bag[r] ?? 0 }, () => r));
-        Array.from(slots.children).forEach((slot, i) => {
-            const kind = gathered[i] ?? '';
-            slot.className = `slot ${kind ? 'filled ' + kind : ''}`;
-            slot.replaceChildren();
-            if (kind) {
-                const icon = document.createElement('i');
-                icon.className = kind === 'wood' || kind === 'ore' ? kind + '-icon' : 'resource-token';
-                icon.textContent = kind === 'wood' || kind === 'ore' ? '' : RESOURCES[kind].name.slice(0, 2).toUpperCase();
-                icon.style.color = RESOURCES[kind].color;
-                slot.append(icon);
-            }
-            slot.setAttribute('aria-label', kind ? RESOURCES[kind].name : 'Empty slot');
-            slot.setAttribute('title', kind ? RESOURCES[kind].name : 'Empty slot');
-        });
+        renderBag(slots, p.bag);
     }
     for (const kind of ['wood', 'ore'] as const) {
         const lv = level(p.xp[kind]);
@@ -472,8 +454,6 @@ function updateHud() {
     const nearby = snapshot.nodes.filter(n => n.stock > 0 && distance(n, p) < 62).sort((a, b) => distance(a, p) - distance(b, p))[0];
     if (area === 'bank')
         hintText.textContent = count(p.bag) ? `Hold to bank ${count(p.bag)} resources` : 'Haul secured. Head back to a grove.';
-    else if (count(p.bag) >= 12)
-        hintText.textContent = 'Bag full. Reach the central bank.';
     else if (snapshot.loot.some(l => distance(l, p) < 48))
         hintText.textContent = 'Hold to recover dropped resources';
     else if (nearby)

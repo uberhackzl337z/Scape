@@ -35,4 +35,4 @@ export type Stock = Record<ItemId, number>;
 export const ITEM_IDS = Object.keys(ITEMS) as ItemId[];
 export const isItem = (value: unknown): value is ItemId => typeof value === 'string' && Object.hasOwn(ITEMS, value);
 export const emptyStock = (): Stock => Object.fromEntries(ITEM_IDS.map(i => [i, 0])) as Stock;
-export const stackLimit = (item: ItemId) => ITEMS[item].kind === 'resource' ? 100000000 : ['arrow', 'emberRune', 'focusRune'].includes(item) ? 999 : 99;
+export const stackLimit = (item: ItemId) => ITEMS[item].kind === 'resource' ? Number.MAX_SAFE_INTEGER : ['arrow', 'emberRune', 'focusRune'].includes(item) ? 999 : 99;

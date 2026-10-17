@@ -23,7 +23,7 @@ test('25 skills have real gathering, recipe, or combat training paths and resour
     for (const id of SKILL_IDS.filter(s => SKILLS[s].group === 'Crafting'))
         assert.ok(RECIPES.some(r => r.skill === id));
 });
-test('all ten raw resources share the 12-slot haul, bank once into storage, and train the correct gathering skills', () => {
+test('all ten raw resources share an uncapped stacked haul, bank once into storage, and train the correct gathering skills', () => {
     const { w, p } = setup();
     let now = 1000;
     for (const resource of RESOURCE_IDS) {
@@ -57,8 +57,8 @@ test('new raw materials drop and recover with old resources without duplication 
     assert.equal(count(p.bag), 0);
     p.bag = { wood: 10, ore: 0 };
     w.interact(p, 2000);
-    assert.equal(count(p.bag), 12);
-    assert.equal(count(w.loot[0].bag), 10);
+    assert.equal(count(p.bag), 22);
+    assert.equal(count(w.loot[0].bag), 0);
     assert.equal(count(p.bag) + count(w.loot[0].bag), 22);
 });
 test('every recipe consumes its actual inputs, produces goods, pays the declared profession XP and has no vendor-profit loop', () => {
