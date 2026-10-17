@@ -76,6 +76,7 @@ export class Commerce {
         if (!pieces.some(p => /^v1=[a-f0-9]{64}$/.test(p) && timingSafeEqual(Buffer.from(p.slice(3), 'hex'), expected))) throw new Error('Invalid payment signature.');
         const event = JSON.parse(raw.toString('utf8'));
         if (typeof event.id !== 'string' || event.livemode !== (this.mode === 'live')) throw new Error('Payment event mode mismatch.');
+        if (this.accounts.db.prepare('SELECT id FROM store_events WHERE id=?').get(event.id)) return;
         if (event.type === 'charge.refunded' || event.type === 'charge.dispute.created') {
             const object = event.data?.object;
             if (event.type === 'charge.refunded' && !(Number.isSafeInteger(object?.amount) && Number.isSafeInteger(object?.amount_refunded) && object.amount_refunded >= object.amount && object.amount > 0)) return;

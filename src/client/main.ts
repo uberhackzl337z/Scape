@@ -147,7 +147,7 @@ $<HTMLInputElement>('name').value = store('scape-name') || 'Wanderer';
 let usingAccount = false;
 const accountView = new AccountView(() => store('scape-token'), name => {
     usingAccount = true; $<HTMLInputElement>('name').value = name; store('scape-name', name);
-}, () => { usingAccount = false; entered = false; hasJoined = false; socket?.close(); $<HTMLInputElement>('name').value = 'Wanderer'; store('scape-name', 'Wanderer'); menu.classList.remove('hidden'); }, () => entered);
+}, () => { usingAccount = false; entered = false; hasJoined = false; socket?.close(); store('scape-token', ''); $<HTMLInputElement>('name').value = 'Wanderer'; store('scape-name', 'Wanderer'); menu.classList.remove('hidden'); }, () => entered);
 for (const id of ['open-account', 'menu-account']) $(id).addEventListener('click', () => { keys.clear(); mouseAttack = false; target = undefined; });
 accountView.dialog.addEventListener('close', () => canvas.focus());
 void accountView.refresh().then(() => {

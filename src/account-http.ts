@@ -36,7 +36,7 @@ export class AccountHttp {
                 await this.commerce.webhook(await readBody(req, 262144), String(req.headers['stripe-signature'] ?? ''));
                 reply(200, { received: true }); return true;
             }
-            if (!validOrigin(req.headers.origin, req.headers.host, env.PUBLIC_ORIGIN)) { reply(403, { error: 'Request origin rejected.' }); return true; }
+            if (!validOrigin(req.headers.origin, req.headers.host, env.PUBLIC_ORIGIN ? new URL(env.PUBLIC_ORIGIN).origin : undefined)) { reply(403, { error: 'Request origin rejected.' }); return true; }
             if (!this.commerce.authEnabled) throw new Error('Email sign-in is not available yet.');
             // Use the socket address, not spoofable X-Forwarded-For headers. Gateway-wide limits are deliberately conservative.
             accounts!.limit('http:' + req.socket.remoteAddress, 60, 60000);

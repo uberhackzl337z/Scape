@@ -133,6 +133,7 @@ test('HTTP email verification sets an HttpOnly session; CSRF, forged codes, priv
     const server = createServer((req, res) => { void controller.handle(req, res, req.url!); });
     await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
     const port = (server.address() as import('node:net').AddressInfo).port, base = `http://127.0.0.1:${port}`;
+    commerce.env.PUBLIC_ORIGIN = base + '/'; // Public-origin config accepts a trailing slash; browser Origin never contains one.
     const post = (path: string, body: object, cookie = '', origin = base) => fetch(base + path, { method: 'POST',
         headers: { Origin: origin, Cookie: cookie, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     try {
