@@ -17,6 +17,7 @@ const profiles = new Map<string, Profile>();
 world.savedProfiles = profiles;
 const tokens = new Map<string, string>();
 const clients = new Map<WebSocket, string>();
+const responsiveSockets = new Set<WebSocket>();
 const storage = new WorldStore(resolve(process.env.DATA_DIR ?? resolve(root, 'data')), config.storage, config.worldId);
 let storageHealthy = true;
 try {
@@ -110,6 +111,8 @@ server.on('upgrade', (req, socket, head) => {
     wss.handleUpgrade(req, socket, head, ws => wss.emit('connection', ws, req));
 });
 wss.on('connection', ws => {
+    responsiveSockets.add(ws);
+    ws.on('pong', () => { responsiveSockets.add(ws); });
     let joined = false;
     let messages = 0;
     let scoreRequests = 0;
@@ -211,6 +214,7 @@ wss.on('connection', ws => {
         }
     });
     ws.on('close', () => {
+        responsiveSockets.delete(ws);
         clearTimeout(timer);
         const id = clients.get(ws);
         if (id) {
@@ -235,6 +239,17 @@ wss.on('connection', ws => {
     });
     ws.on('error', () => { });
 });
+const heartbeat = setInterval(() => {
+    for (const ws of wss.clients) {
+        if (!responsiveSockets.has(ws)) {
+            ws.terminate();
+            continue;
+        }
+        responsiveSockets.delete(ws);
+        if (ws.readyState === WebSocket.OPEN)
+            ws.ping();
+    }
+}, 30000);
 let last = Date.now();
 let step = 0;
 const loop = setInterval(() => {
@@ -262,6 +277,7 @@ server.listen(port, host, () => console.log(`CodyScape is ready: http://${host}:
 async function stop() {
     clearInterval(loop);
     clearInterval(saves);
+    clearInterval(heartbeat);
     world.dueling.cancelAll(Date.now());
     await save();
     for (const ws of wss.clients)
