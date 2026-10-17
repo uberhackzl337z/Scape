@@ -1,5 +1,7 @@
 # Hosting one interconnected world
 
+**Before choosing a provider:** follow [the no-cost deployment readiness checklist](DEPLOYMENT_READINESS.md). It covers free temporary tunnels, free-tier VMs, managed hosts, storage, tests, cost alerts and the approval gate. No deployment is authorized by these documents.
+
 Assessed October 16, 2026. Hosting configuration is prepared, not purchased or publicly deployed.
 
 ## What players will need
