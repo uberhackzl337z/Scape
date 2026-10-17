@@ -4,7 +4,7 @@ import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import WebSocket from 'ws';
-import { createPlayer, profileOf } from '../dist/shared/world.js';
+import { createPlayer, profileOf, zone } from '../dist/shared/world.js';
 const port=3036,origin=`http://127.0.0.1:${port}`;
 await mkdir('artifacts',{recursive:true});const dataDir=await mkdtemp(resolve('artifacts/equipment-test-'));
 const a=createPlayer('gear-public',{name:'Gear tester',coins:3000});
@@ -17,7 +17,20 @@ async function boot(){let out='';child=spawn(process.execPath,['dist/server.js']
 async function kill(){if(!child||child.exitCode!==null)return;const exit=new Promise(r=>child.once('exit',r));child.kill('SIGKILL');await exit;}
 async function join(token){const c={ws:new WebSocket(origin.replace('http','ws')+'/live',{origin}),id:'',state:null,error:''};sockets.push(c.ws);c.ws.on('message',raw=>{const m=JSON.parse(raw);if(m.type==='welcome'){c.id=m.id;c.world=m.world;}if(m.type==='state')c.state=m;if(m.type==='joinError')c.error=m.message;});await new Promise((r,j)=>{c.ws.once('open',r);c.ws.once('error',j);});c.ws.send(JSON.stringify({type:'join',token,name:token==='buyer-test-key'?'Buyer':'Gear tester'}));await until(()=>c.error||c.id&&c.state);return c;}
 const send=(c,m)=>c.ws.send(JSON.stringify(m)),me=c=>c.state.players.find(p=>p.id===c.id);
-async function move(c,target){const timer=setInterval(()=>{const p=me(c),dx=target.x-p.x,dy=target.y-p.y,d=Math.hypot(dx,dy);send(c,{type:'input',x:d>5?dx/d:0,y:d>5?dy/d:0});},50);try{await until(()=>Math.hypot(me(c).x-target.x,me(c).y-target.y)<9,16000);}finally{clearInterval(timer);send(c,{type:'input',x:0,y:0});}}
+async function move(c, target) {
+ const timer = setInterval(() => {
+  const p = me(c), dx = target.x - p.x, dy = target.y - p.y, d = Math.hypot(dx, dy);
+  // Snapshots arrive slower than movement ticks. Ease the final approach so stale
+  // full-speed commands cannot oscillate across the unchanged 9-unit assertion.
+  send(c, { type: 'input', x: d > 5 ? dx / Math.max(30, d) : 0, y: d > 5 ? dy / Math.max(30, d) : 0 });
+ }, 50);
+ try { await until(() => Math.hypot(me(c).x - target.x, me(c).y - target.y) < 9, 16000); }
+ catch (error) {
+  const p = me(c);
+  throw new Error(`Equipment route to ${JSON.stringify(target)} failed at ${JSON.stringify({x:p.x,y:p.y,hp:p.hp,message:p.message})}`, { cause: error });
+ } finally { clearInterval(timer); send(c, { type: 'input', x: 0, y: 0 }); }
+}
+
 function saved(){const db=new DatabaseSync(resolve(dataDir,'world.sqlite'),{readOnly:true});try{return JSON.parse(db.prepare('SELECT payload FROM world_state WHERE id=1').get().payload);}finally{db.close();}}
 try{
  await boot();let c=await join('gear-test-key');const b=await join('buyer-test-key');assert.equal(c.world.id,b.world.id);
@@ -40,8 +53,9 @@ try{
  await move(c,{x:1000,y:550});
  // Patrol positions depend on wall-clock phase. Walk into aura range instead of
  // assuming a monster will approach this fixed point within seven seconds.
- const approach=setInterval(()=>{const p=me(c),e=c.state.raiders.filter(e=>e.hp>0&&e.kind!=='boss').sort((a,b)=>Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y))[0];if(!e)return;const dx=e.x-p.x,dy=e.y-p.y,d=Math.hypot(dx,dy);send(c,{type:'input',x:d>45?dx/d:0,y:d>45?dy/d:0});},50);
- try{await until(()=>c.state.raiders.some(e=>e.burnUntil>c.state.time),7000);}finally{clearInterval(approach);send(c,{type:'input',x:0,y:0});}
+ // Only pursue wild-zone monsters: safe-ground monsters cannot receive a burn.
+ const approach=setInterval(()=>{const p=me(c),e=c.state.raiders.filter(e=>e.hp>0&&e.kind!=='boss'&&zone(e)==='wild').sort((a,b)=>Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y))[0];if(!e)return;const dx=e.x-p.x,dy=e.y-p.y,d=Math.hypot(dx,dy);send(c,{type:'input',x:d>45?dx/d:0,y:d>45?dy/d:0});},50);
+ try{await until(()=>c.state.raiders.some(e=>e.burnUntil>c.state.time));}finally{clearInterval(approach);send(c,{type:'input',x:0,y:0});}
  await until(()=>me(c).attackAt<=c.state.time);const priorSwing=me(c).swingAt;
  send(c,{type:'input',x:0,y:0,attack:true,aim:-Math.PI/2});send(c,{type:'input',x:0,y:0,attack:false,aim:-Math.PI/2});
  await until(()=>me(c).swingAt>priorSwing);assert.equal(me(c).items.emberRune,0,'a quick basic shot works without runes');
