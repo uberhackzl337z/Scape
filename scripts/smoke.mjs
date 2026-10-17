@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import WebSocket from 'ws';
 import { zone } from '../dist/shared/world.js';
 const base=process.env.GAME_URL??'http://127.0.0.1:3000';
-const origin=new URL(base).origin;
+const origin=process.env.GAME_ORIGIN??new URL(base).origin;
 const sockets=[];
 async function join(name){
   const ws=new WebSocket(base.replace(/^http/,'ws')+'/live',{origin});sockets.push(ws);
@@ -47,4 +47,3 @@ try{
   console.log('PASS: successful gathering pose replicated to a second client, forged visual input ignored and release cancels it.');
   console.log('PASS: combat assets, private-file isolation, two-player state, movement replication, weapon selection, dodge stamina, XP forgery rejection.');
 }finally{for(const ws of sockets)ws.close();}
-

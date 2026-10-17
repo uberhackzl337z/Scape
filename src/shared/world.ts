@@ -665,7 +665,10 @@ export class World {
         }
         const node = nearestWithin(this.nodes, p, 62, n => n.stock > 0);
         if (!node) {
-            this.say(p, 'Move closer to a tree, rock, or dropped bag.', now);
+            const depleted = nearestWithin(this.nodes, p, 62, () => true);
+            this.say(p, depleted
+                ? `${RESOURCES[depleted.kind].name} site depleted. Regrows in ${Math.max(1, Math.ceil((depleted.readyAt - now) / 1000))}s.`
+                : 'Move closer to a resource site or dropped haul.', now);
             p.gatherAt = now + 500;
             return;
         }

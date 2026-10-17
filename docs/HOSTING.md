@@ -1,12 +1,12 @@
 # Hosting one interconnected world
 
-Assessed October 16, 2026. Hosting configuration is prepared, not purchased or publicly deployed.
+Reviewed October 17, 2026. Hosting configuration is prepared, not purchased or publicly deployed.
 
 ## What players will need
 
 Players open one HTTPS URL in a desktop browser. That browser downloads the small interface and graphics code, but does not own a private copy of the world, coins or character progress. There is no offline gameplay or player-hosted server requirement. One authoritative Node.js process owns movement, combat, gear, market orders, wagers and saved profiles. All players connected to that process share its world and economy. The previous v0.5 local-test ZIP is an old testing artifact, not the release model going forward.
 
-The development server at 127.0.0.1 is still reachable only on the machine running it. An internet host is the next operational step. Steam is not required.
+The development server at 127.0.0.1 is still reachable only on this computer. An internet host is the next operational step. Steam is not required.
 
 ## Providers and contacts
 
@@ -20,7 +20,7 @@ For either provider, describe the requirement as: a small always-on multiplayer 
 
 ## Prepared deployment
 
-- `Dockerfile`: builds/tests TypeScript, retains production dependencies, runs as an unprivileged user and exposes an HTTP health check. Docker is unavailable on the original development environment, so the container image and gateway have **not** been built or exercised here.
+- `Dockerfile`: builds/tests TypeScript, retains production dependencies, runs as an unprivileged user and exposes an HTTP health check. Docker is unavailable on this development machine, so the container image and gateway have **not** been built or exercised here.
 - `compose.yaml`: one game container, persistent world volume, Caddy HTTPS gateway and certificate volumes. It requires an actual `GAME_DOMAIN` with DNS pointing to the host. Only the gateway publishes ports 80/443.
 - `deploy/Caddyfile`: terminates HTTPS and proxies HTTP/WebSocket traffic to the game container.
 - `APP_ENV=production` requires `PUBLIC_ORIGIN=https://your-domain` and SQLite. Origin checks use that exact configured origin instead of trusting a proxy Host header. Set `WORLD_ID` once and keep it stable. The database rejects another world ID, and an OS-backed SQLite writer lock rejects a second simulation using the same data directory. This is intentionally not a horizontally scaled architecture.
@@ -38,8 +38,15 @@ Player location, monsters, resource timers and dropped field bags are transient;
 
 Private bearer access keys now resume characters across browsers/devices, and duplicate active sessions are rejected. They are not verified accounts or email recovery. Before charging money or public competitive play, add proper recoverable accounts, stronger abuse controls, load testing and an operations pass. Checkout remains absent.
 
-## Morning cloud development is separate
+## Recommended next steps
 
-The Scape cloud environment is published, and Daily Scape stability review is active in ChatGPT's cloud scheduler at 10 a.m. America/Chicago, targeting this repository. The old desktop duplicate is paused. Cloud onboarding and the first full GitHub-hosted verification passed; a manual scheduled-review trial was dispatched but its completion and a fresh snapshot restoration have not been observed. See [CLOUD_STATUS.md](CLOUD_STATUS.md) for the evidence and limits.
+1. Start with a small invite-only browser alpha on one DigitalOcean Basic 2 GiB / 1 vCPU Droplet near the first players. Current base price was rechecked at $12/month; the 50 GiB disk and 2,000 GiB transfer are included. Allow a planning budget of roughly $20-30/month for the VM plus backup/monitoring overhead, with domain registration and taxes separate; that range is an estimate, not a quoted bundle. No Steam agreement is needed.
+2. Review and integrate the Scape feature PR stack in dependency order, then freeze a verified release commit. Keep development/test worlds separate from the hosted world. Do not deploy an arbitrary main branch that lacks the tested features.
+3. Build the production container on Linux. The new container CI job builds the actual image, tests its assets/WebSockets under production origin checks, restarts it with the same persistent volume and resumes the same private character identity. This complements the rules/economy suite. Consult the exact commit's CI result; a local build alone does not prove the container works. Real HTTPS/domain and gateway behavior still need a staging check.
+4. Configure a domain, DNS, HTTPS gateway, exactly one simulation, persistent disk, restart policy, budget alerts, off-host consistent backups and external health monitoring. Keep GAME_DOMAIN, PUBLIC_ORIGIN and stable WORLD_ID consistent. Never scale this SQLite world to multiple replicas.
+5. Import a consistent backup into a fresh stopped volume only if intentionally keeping prototype progress. Perform an off-host backup restoration drill before inviting testers. Verify cross-device login, two real remote players, restart retention, network interruption, and database/storage failure behavior.
+6. Start with 5-10 invited testers as a controlled experiment; this is a proposed test group, not measured capacity. Leave the connection cap at 16 until concurrency/soak tests establish actual CPU, memory, bandwidth and latency limits. Add verified recoverable accounts, abuse controls, support/rollback procedures and privacy handling before broad public competitive play or purchases.
 
-A live game host is separate: this development setup does not deploy an always-on player world. [Official cloud environments](https://learn.chatgpt.com/docs/environments/cloud-environments), [scheduled tasks](https://learn.chatgpt.com/docs/automations?surface=app).
+The rented host keeps the game online when the developer's PC is off. It still needs paid hosting, monitoring, backups, updates and occasional incident handling; it will not maintain itself indefinitely. Cloud AI development and live game hosting are separate services. For previously recorded development scheduling evidence, consult CLOUD_STATUS.md; this hosting guide does not certify a current automation state.
+
+Railway remains a managed alternative: its current Hobby minimum is $5 including $5 usage, with actual resources billed beyond that. It needs a persistent volume and exactly one awake replica. DigitalOcean is the recommendation here because the existing Compose/Caddy plan maps directly to a single VM and gives a clear starting resource allocation; it does require Linux administration.

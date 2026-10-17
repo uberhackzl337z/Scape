@@ -21,7 +21,7 @@ export const SKILLS = {
     swordsmanship: skill('Swordsmanship', 'Combat', 'Damage PvE enemies with swords. Every 3 levels adds 1 damage, up to +6.'),
     spearmastery: skill('Spear mastery', 'Combat', 'Damage PvE enemies with spears. Every 3 levels adds 1 damage, up to +6.'),
     axemastery: skill('Axe mastery', 'Combat', 'Damage PvE enemies with axes. Every 3 levels adds 1 damage, up to +6.'),
-    archery: skill('Archery', 'Combat', 'Hit PvE enemies with a shortbow. Uses arrows; levels add up to +6 damage.'),
+    archery: skill('Archery', 'Combat', 'Hit PvE enemies with a shortbow. Basic shots are free; Twin shot uses two arrows. Levels add up to +6 damage.'),
     pyromancy: skill('Pyromancy', 'Combat', 'Hit monsters with ember bolts or gear burns. Levels improve staff damage and equipped fire wards.'),
     restoration: skill('Restoration', 'Combat', 'F uses a focus rune to heal recent enemy damage. Levels increase healing, up to 35.'),
     defence: skill('Defence', 'Combat', 'Take PvE damage to train. Levels reduce incoming damage, up to 5, alongside crafted armor.'),

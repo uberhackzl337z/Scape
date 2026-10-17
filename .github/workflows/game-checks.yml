@@ -32,3 +32,39 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Compile and exercise disposable multiplayer worlds
         run: pnpm run verify:cloud
+  container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GAME_URL: http://127.0.0.1:3080
+      GAME_ORIGIN: https://scape.test
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - uses: pnpm/action-setup@v6
+      - run: pnpm install --frozen-lockfile && pnpm run build
+      - name: Build production image
+        run: docker build -t scape-test .
+      - name: Start disposable production world
+        run: |
+          docker volume create scape-test-data
+          docker run -d --name scape-test -p 127.0.0.1:3080:3000 -e PUBLIC_ORIGIN=https://scape.test -v scape-test-data:/game/data scape-test
+          curl --retry 30 --retry-delay 1 --retry-all-errors --max-time 2 --retry-max-time 60 --fail http://127.0.0.1:3080/health
+      - name: Exercise packaged assets and multiplayer through production origin checks
+        run: node scripts/smoke.mjs && node scripts/container-resume.mjs create
+      - name: Verify restart with persistent volume
+        run: |
+          docker restart --time 20 scape-test
+          curl --retry 30 --retry-delay 1 --retry-all-errors --max-time 2 --retry-max-time 60 --fail http://127.0.0.1:3080/health
+          node scripts/container-resume.mjs resume
+      - name: Container diagnostics and cleanup
+        if: always()
+        run: |
+          docker logs scape-test || true
+          docker rm -f scape-test || true
+          docker volume rm scape-test-data || true
