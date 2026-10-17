@@ -42,7 +42,7 @@ try {
     if (spawnError) throw spawnError;
     if (server.exitCode !== null || server.signalCode !== null) throw new Error(`Disposable server stopped: ${output}`);
     // Wait for our own process's readiness before probing a possibly occupied port.
-    if (output.includes('CodyScape is ready:')) break;
+    if (output.includes('Scape is ready:')) break;
     if (Date.now() >= deadline) throw new Error(`Disposable server did not start: ${output}`);
     await new Promise(resolveWait => setTimeout(resolveWait, 50));
   }

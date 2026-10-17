@@ -19,7 +19,7 @@ let mousePoint: {
     y: number;
 } | undefined;
 let joinRejected = false;
-let worldName = 'The Crossing';
+let worldName = 'Scape';
 let selectedWeapon: WeaponId | undefined;
 const mini = $<HTMLCanvasElement>('minimap');
 const mctx = mini.getContext('2d')!;
@@ -78,14 +78,26 @@ function store(key: string, value?: string) {
         return '';
     }
 }
-$<HTMLInputElement>('name').value = store('codyscape-name') || 'Wanderer';
+// Preserve browser characters created before the Scape rename.
+try {
+    for (const storage of [sessionStorage, localStorage]) {
+        for (const suffix of ['name', 'token']) {
+            const key = 'scape-' + suffix;
+            const legacy = storage.getItem('codyscape-' + suffix);
+            if (storage.getItem(key) === null && legacy !== null)
+                storage.setItem(key, legacy);
+        }
+    }
+}
+catch { /* Storage can be unavailable in restricted browser sessions. */ }
+$<HTMLInputElement>('name').value = store('scape-name') || 'Wanderer';
 function toast(text: string) { $('toast').textContent = text; $('toast').classList.add('visible'); toastUntil = Date.now() + 3000; }
 function status(text: string, online: boolean) { $('connection').textContent = text; $('connection-dot').style.backgroundColor = online ? '#98b58a' : '#c4966f'; }
 function connect() {
     joinRejected = false;
     status('CONNECTING', false);
     socket = new WebSocket(`${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/live`);
-    socket.addEventListener('open', () => socket!.send(JSON.stringify({ type: 'join', name: $<HTMLInputElement>('name').value, token: $<HTMLInputElement>('resume-key').value.trim() || store('codyscape-token') })));
+    socket.addEventListener('open', () => socket!.send(JSON.stringify({ type: 'join', name: $<HTMLInputElement>('name').value, token: $<HTMLInputElement>('resume-key').value.trim() || store('scape-token') })));
     socket.addEventListener('message', event => {
         const message = JSON.parse(event.data);
         if (message.type === 'notice')
@@ -101,12 +113,12 @@ function connect() {
             townView.scores.receive(message);
         if (message.type === 'welcome') {
             selfId = message.id;
-            store('codyscape-token', message.token);
-            store('codyscape-name', $<HTMLInputElement>('name').value);
+            store('scape-token', message.token);
+            store('scape-name', $<HTMLInputElement>('name').value);
             menu.classList.add('hidden');
             entered = true;
             hasJoined = true;
-            worldName = message.world?.name ?? 'The Crossing';
+            worldName = message.world?.name ?? 'Scape';
             $<HTMLInputElement>('resume-key').value = '';
             status(`${worldName.toUpperCase()} · LIVE`, true);
             canvas.focus();
@@ -234,7 +246,7 @@ function castAbility() {
 }
 $('cast-ability').addEventListener('click', () => { castAbility(); canvas.focus(); });
 $('copy-access-key').addEventListener('click', async () => {
-    const key = store('codyscape-token');
+    const key = store('scape-token');
     if (!key)
         return;
     try {

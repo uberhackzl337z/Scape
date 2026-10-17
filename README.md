@@ -1,4 +1,4 @@
-# CodyScape — The Crossing
+# Scape
 
 A lightweight 2D multiplayer prototype: gather in the outer groves, risk your haul in the contested crossing, and reach the central bank to earn XP.
 

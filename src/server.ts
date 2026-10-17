@@ -258,7 +258,7 @@ const { host, port } = config;
 await save();
 if (!storageHealthy)
     throw new Error('World storage unavailable; refusing to start.');
-server.listen(port, host, () => console.log(`CodyScape is ready: http://${host}:${port}`));
+server.listen(port, host, () => console.log(`Scape is ready: http://${host}:${port}`));
 async function stop() {
     clearInterval(loop);
     clearInterval(saves);

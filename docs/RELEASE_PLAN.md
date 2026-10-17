@@ -6,7 +6,7 @@ Recorded October 16, 2026. This is a project assessment, not a revenue forecast 
 
 Version 0.5.0 compiles from TypeScript to JavaScript. The local-test ZIP includes the browser files, compiled authoritative Node.js server, its ws 8.22.0 dependency/license, a Windows launcher, instructions and a SHA-256 file manifest. It excludes source maps, tests, compiler, personal saves, backups and resume tokens. Node.js 24.12+ and a desktop browser are prerequisites; no runtime installer is bundled.
 
-- ZIP: `artifacts/releases/codyscape-0.5.0-local-test.zip`, 106,302 bytes (103.8 KiB).
+- ZIP: `artifacts/releases/ (historical test archive)`, 106,302 bytes (103.8 KiB).
 - SHA-256: `b216f4c26b6b5c0352bebf38b2b89729536c2bc59875781777775887955539b4`.
 - Local launcher: extract the ZIP, run START-LOCAL.cmd, then open http://127.0.0.1:3030/ when ready. Normal development remains on 3000. Each recipient starts a separate world; recipients do not automatically join one shared server.
 - Compilation and 57 rules tests passed. Verified every extracted file against the manifest, the isolated bundled ws dependency, actual server startup on 3035, HTTP assets/private-file protection, two network clients, movement replication, weapons/dodge, rejected forged XP/coins and a new v4 save. A read-only normalization check retained current saved wallets, bank balances, inventory and skill records. These checks do not establish zero defects or production readiness.

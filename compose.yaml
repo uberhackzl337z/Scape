@@ -6,7 +6,7 @@ services:
     environment:
       PUBLIC_ORIGIN: https://${GAME_DOMAIN:?Set GAME_DOMAIN to your domain}
       WORLD_ID: the-crossing
-      WORLD_NAME: The Crossing
+      WORLD_NAME: Scape
       MAX_PLAYERS: 16
     volumes:
       - world-data:/game/data

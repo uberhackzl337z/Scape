@@ -1,7 +1,7 @@
 # Scape project context
 
 Updated October 17, 2026. Source repository: https://github.com/uberhackzl337z/Scape.
-CodyScape / The Crossing is a working title.
+Scape is a working title.
 
 ## Core concept and constraints
 
@@ -26,3 +26,7 @@ Source availability, automated checks, cloud AI development and public game host
 ## Development and handoff
 
 Use the pinned Node version in .nvmrc and pnpm version in package.json. Install with pnpm install --frozen-lockfile. Run pnpm run verify:cloud for compilation, rules/storage tests, boss simulation and disposable multiplayer/economy checks. Never test against a live player's world or invent a successful check. Preserve production data; changes should be small and reviewable.
+
+## Scape naming and continued development
+
+The game is named Scape. Display titles, default world name, package name and new packaging use this name. The browser migrates pre-rename identity keys to scape-name/scape-token so existing characters remain accessible; the legacy read and stable world ID are compatibility details. Do not remove them as cosmetic cleanup. See docs/DEVELOPMENT_PRIORITIES.md for newly authorized implementation priorities.
