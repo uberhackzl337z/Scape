@@ -241,13 +241,14 @@ wss.on('connection', ws => {
 });
 const heartbeat = setInterval(() => {
     for (const ws of wss.clients) {
+        if (ws.readyState !== WebSocket.OPEN)
+            continue;
         if (!responsiveSockets.has(ws)) {
             ws.terminate();
             continue;
         }
         responsiveSockets.delete(ws);
-        if (ws.readyState === WebSocket.OPEN)
-            ws.ping();
+        ws.ping();
     }
 }, 30000);
 let last = Date.now();
