@@ -71,7 +71,9 @@ The in-game field guide explains combat and earned-coin wagers.
 
 Includes ${Object.keys(SKILLS).length} trainable skills, ${RECIPES.length} recipes,
 expedition contracts, gathering, bank, PvE/boss combat, PvP/earned-coin duels,
-market and world high scores. No purchases or cash-out.
+market and world high scores. Duel coins are earned only; no cash-out.
+Optional email accounts/appearance checkout require separate provider configuration;
+this package contains no provider secrets or enabled billing settings.
 Prototype balance, temporary identities, local save files; not a commercial release.
 No existing player saves, authentication secrets, backups or development tools included.
 

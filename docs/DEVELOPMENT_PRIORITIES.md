@@ -1,5 +1,12 @@
 # Scape completion work
 
+## Newer account and monetization authorization
+
+The owner subsequently requested chosen-name email-bound accounts and a monetized store, selected US business operations, and explicitly authorized choosing and implementing the payment provider. This supersedes the older pass restriction on implementing account/payment code below. The selected stack is Supabase email OTP and Stripe Checkout for non-tradeable cosmetics. See ACCOUNTS_AND_STORE.md. Keep default billing in test mode; real provider onboarding, host/domain, verified mail, merchant eligibility, policies/support and configured live credentials remain external requirements. No real charges, merchant terms acceptance, paid hosting acquisition, automatic merges, production-world tests or saved-data resets were performed or implied by code implementation.
+
+## Original cloud development pass
+
+
 The user authorized continued cloud development toward a more complete lightweight multiplayer game on October 17, 2026. These are implementation priorities, not recovered original design requirements.
 
 1. Preserve the Scape name across interface, source and documentation. Keep pre-rename browser identity migration and the stable saved-world ID; a branding change must never reset characters.
