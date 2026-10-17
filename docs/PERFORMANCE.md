@@ -25,3 +25,5 @@ Timings vary with the machine and load. Browser asset totals are 249.1 KiB raw /
 Full local checks exposed existing equipment-driver timing assumptions. A diagnostic run captured full-speed destination oscillation while health remained 100; the test now eases its final approach and retains the exact arrival threshold. Aura pursuit now selects wild monsters and stops only when the player is also on wild ground, avoiding an immune target or a player waiting inside sanctuary near a monster across its boundary. Failures report test positions, health and eligibility. No combat rules or effect assertions were removed.
 
 Keep future work driven by profiles. Server capacity/load tests, renderer culling and broader UI caching need evidence before adding complexity.
+
+GitHub also exposed a cross-client duel-test race: the winner's completed snapshot and the loser's older active snapshot can already sum to the expected conserved coins, while the latter still has zero losses. The test now waits for both sockets to observe the same completed duel before its unchanged payout, win/loss and restart assertions. No fixed sleep or relaxed assertion is used.
