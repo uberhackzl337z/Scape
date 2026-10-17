@@ -13,7 +13,7 @@ a.items.emberRune=0;a.items.focusRune=10;
 await writeFile(resolve(dataDir,'profiles.json'),JSON.stringify({version:4,profiles:{'gear-test-key':profileOf(a),'buyer-test-key':profileOf(createPlayer('buyer-public',{coins:1000}))},escrows:[],marketListings:[]}));
 let child;const sockets=[];
 async function until(check,ms=12000){const end=Date.now()+ms;while(!await check()){assert.ok(Date.now()<end,'Timed out waiting for equipment test');await new Promise(r=>setTimeout(r,40));}}
-async function boot(){let out='';child=spawn(process.execPath,['dist/server.js'],{cwd:process.cwd(),env:{...process.env,HOST:'127.0.0.1',APP_ENV:'test',STORAGE:'sqlite',PORT:String(port),DATA_DIR:dataDir,WORLD_ID:'equipment-test',PUBLIC_ORIGIN:origin},windowsHide:true,stdio:['ignore','pipe','pipe']});child.stdout.on('data',d=>out+=d);child.stderr.on('data',d=>out+=d);await until(()=>{if(child.exitCode!==null)throw Error(out);return out.includes('CodyScape is ready');});}
+async function boot(){let out='';child=spawn(process.execPath,['dist/server.js'],{cwd:process.cwd(),env:{...process.env,HOST:'127.0.0.1',APP_ENV:'test',STORAGE:'sqlite',PORT:String(port),DATA_DIR:dataDir,WORLD_ID:'equipment-test',PUBLIC_ORIGIN:origin},windowsHide:true,stdio:['ignore','pipe','pipe']});child.stdout.on('data',d=>out+=d);child.stderr.on('data',d=>out+=d);await until(()=>{if(child.exitCode!==null)throw Error(out);return out.includes('Scape is ready');});}
 async function kill(){if(!child||child.exitCode!==null)return;const exit=new Promise(r=>child.once('exit',r));child.kill('SIGKILL');await exit;}
 async function join(token){const c={ws:new WebSocket(origin.replace('http','ws')+'/live',{origin}),id:'',state:null,error:''};sockets.push(c.ws);c.ws.on('message',raw=>{const m=JSON.parse(raw);if(m.type==='welcome'){c.id=m.id;c.world=m.world;}if(m.type==='state')c.state=m;if(m.type==='joinError')c.error=m.message;});await new Promise((r,j)=>{c.ws.once('open',r);c.ws.once('error',j);});c.ws.send(JSON.stringify({type:'join',token,name:token==='buyer-test-key'?'Buyer':'Gear tester'}));await until(()=>c.error||c.id&&c.state);return c;}
 const send=(c,m)=>c.ws.send(JSON.stringify(m)),me=c=>c.state.players.find(p=>p.id===c.id);
@@ -37,7 +37,11 @@ try{
  await move(c,{x:800,y:550});
  for(const[slot,item]of[['offhand','stormGuard'],['charm','frostSigil']]){send(c,{type:'equipment',slot,item});await until(()=>me(c).equipment[slot]===item);}
  send(c,{type:'market',action:'equip',item:'emberStaff'});await until(()=>me(c).weapon==='emberStaff');
- await move(c,{x:1000,y:550});await until(()=>c.state.raiders.some(e=>e.burnUntil>c.state.time),7000);
+ await move(c,{x:1000,y:550});
+ // Patrol positions depend on wall-clock phase. Walk into aura range instead of
+ // assuming a monster will approach this fixed point within seven seconds.
+ const approach=setInterval(()=>{const p=me(c),e=c.state.raiders.filter(e=>e.hp>0&&e.kind!=='boss').sort((a,b)=>Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y))[0];if(!e)return;const dx=e.x-p.x,dy=e.y-p.y,d=Math.hypot(dx,dy);send(c,{type:'input',x:d>45?dx/d:0,y:d>45?dy/d:0});},50);
+ try{await until(()=>c.state.raiders.some(e=>e.burnUntil>c.state.time),7000);}finally{clearInterval(approach);send(c,{type:'input',x:0,y:0});}
  await until(()=>me(c).attackAt<=c.state.time);const priorSwing=me(c).swingAt;
  send(c,{type:'input',x:0,y:0,attack:true,aim:-Math.PI/2});send(c,{type:'input',x:0,y:0,attack:false,aim:-Math.PI/2});
  await until(()=>me(c).swingAt>priorSwing);assert.equal(me(c).items.emberRune,0,'a quick basic shot works without runes');

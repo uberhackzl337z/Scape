@@ -19,3 +19,9 @@
 dialog.gear-dialog{width:min(1080px,94vw);max-width:min(1080px,94vw);box-sizing:border-box}.paper-slot,.gear-card,.set-card,.shop-card{min-width:0;overflow-wrap:anywhere}.gear-slots{min-width:0}#gear-items:empty{display:none}
 .set-card p,.shop-card p{margin:3px 0}.set-card{gap:10px}.set-card h3{margin-bottom:8px}
 .world-top,#context-hint,#toast,#boss-hud,.world-footer{pointer-events:none}#world{touch-action:none}
+
+.contract-card { border: 1px solid #665c43; padding: 16px; margin: 12px 0; border-radius: 6px; }
+.contract-card h3 { margin: 0 0 8px; }
+.contract-card button { max-width: 100%; white-space: normal; }
+#contracts { max-height: 85vh; overflow-y: auto; }
+@media (max-width: 1150px) { .town-nav { flex-wrap: wrap; gap: 4px; } .topbar { height: auto; min-height: 64px; } .edition { display: none; } }

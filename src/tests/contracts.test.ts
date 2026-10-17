@@ -1,0 +1,167 @@
+import { stackLimit } from '../shared/items.js';
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtemp, mkdir } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { World, createPlayer, profileOf, createEnemy, MAP } from '../shared/world.js';
+import { recoverState } from '../persistence.js';
+import { WorldStore } from '../storage.js';
+function setup() {
+    const w = new World(), p = createPlayer('test');
+    w.players.set(p.id, p);
+    w.raiders = [];
+    return { w, p };
+}
+function haul(w: World, p: ReturnType<typeof createPlayer>) {
+    const node = w.nodes.find(n => n.kind === 'wood')!;
+    for (let i = 0; i < 4; i++) {
+        p.x = node.x;
+        p.y = node.y;
+        w.interact(p, 1000 + i * 1000);
+    }
+    p.x = MAP.bankX;
+    p.y = MAP.bankY;
+    w.interact(p, 6000);
+}
+test('actual actions gate rewards; forged payload, repeated claims, death, duel and out-of-bank claims fail', () => {
+    const { w, p } = setup();
+    p.x = MAP.bankX;
+    p.y = MAP.bankY;
+    w.claimContract(p.id, { contract: 'first-haul', progress: [4, 4], reward: 99999, claimed: false }, 1);
+    assert.equal(p.coins, 0);
+    w.receiveInput(p.id, { contracts: { progress: { 'first-haul': [4, 4] } } }, 2);
+    assert.deepEqual(p.contracts.progress, {});
+    haul(w, p);
+    assert.deepEqual(p.contracts.progress['first-haul'], [4, 4]);
+    const earnedBankCoins = p.coins;
+    p.x = 170;
+    w.claimContract(p.id, { contract: 'first-haul' }, 7000);
+    assert.equal(p.coins, earnedBankCoins);
+    p.x = MAP.bankX;
+    p.hp = 0;
+    w.claimContract(p.id, { contract: 'first-haul' }, 7001);
+    assert.equal(p.coins, earnedBankCoins);
+    p.hp = 100;
+    p.duelId = 'locked';
+    w.claimContract(p.id, { contract: 'first-haul' }, 7002);
+    assert.equal(p.coins, earnedBankCoins);
+    p.duelId = '';
+    w.claimContract(p.id, { contract: 'first-haul', reward: 999999 }, 7003);
+    assert.equal(p.coins, earnedBankCoins + 30);
+    for (let i = 0; i < 10; i++)
+        w.claimContract(p.id, { contract: 'first-haul' }, 7004 + i);
+    assert.equal(p.coins, earnedBankCoins + 30);
+    w.craft(p.id, { recipe: 'planks', quantity: 99 }, 8000);
+    assert.equal(p.contracts.progress.workshop, undefined);
+    w.craft(p.id, { recipe: 'planks', quantity: 2 }, 8001);
+    assert.deepEqual(p.contracts.progress.workshop, [2]);
+    w.claimContract(p.id, { contract: 'workshop' }, 9000);
+    assert.equal(p.coins, earnedBankCoins + 75);
+    // Ordinary and boss deaths use the real damage/contributor eligibility path.
+    p.x = 1000;
+    p.y = 550;
+    for (let i = 0; i < 3; i++) {
+        const e = createEnemy('brute', `e${i}`, 1020, 550);
+        w.raiders.push(e);
+        w.hitEnemy(e, p, 1000, 10000 + i);
+    }
+    assert.deepEqual(p.contracts.progress.patrol, [3]);
+    p.x = MAP.bankX;
+    w.claimContract(p.id, { contract: 'patrol' }, 11000);
+    p.x = MAP.bossX;
+    const boss = createEnemy('boss', 'boss', MAP.bossX + 10, MAP.bossY);
+    w.raiders.push(boss);
+    w.hitEnemy(boss, p, 1000, 12000);
+    assert.deepEqual(p.contracts.progress.warden, [1]);
+    p.x = MAP.bankX;
+    w.claimContract(p.id, { contract: 'warden' }, 13000);
+    assert.equal(p.coins, earnedBankCoins + 255);
+});
+test('SQLite close/reopen retains partial progress and atomic wallet/claim, legacy migration invents no progress', async () => {
+    const { w, p } = setup();
+    const node = w.nodes.find(n => n.kind === 'wood')!;
+    p.x = node.x;
+    p.y = node.y;
+    w.interact(p, 1000);
+    w.interact(p, 2000);
+    await mkdir('artifacts', { recursive: true });
+    const dir = await mkdtemp(resolve('artifacts/contracts-'));
+    let store = new WorldStore(dir, 'sqlite', 'contract-test');
+    await store.open();
+    async function persist() { await store.write(JSON.stringify({ version: 5, profiles: { privateTestToken: profileOf(p) }, marketListings: [], escrows: [] })); }
+    await persist();
+    store.close();
+    store = new WorldStore(dir, 'sqlite', 'contract-test');
+    let saved = recoverState(await store.open()).profiles.get('privateTestToken')!;
+    assert.deepEqual(saved.contracts.progress['first-haul'], [2, 0]);
+    const resumed = createPlayer('resumed', saved);
+    w.players.set(resumed.id, resumed);
+    haul(w, resumed);
+    resumed.x = MAP.bankX;
+    resumed.y = MAP.bankY;
+    w.claimContract(resumed.id, { contract: 'first-haul' }, 8000);
+    await store.write(JSON.stringify({ version: 5, profiles: { privateTestToken: profileOf(resumed) }, marketListings: [], escrows: [] }));
+    store.close();
+    store = new WorldStore(dir, 'sqlite', 'contract-test');
+    saved = recoverState(await store.open()).profiles.get('privateTestToken')!;
+    store.close();
+    const again = createPlayer('again', saved);
+    w.players.set(again.id, again);
+    again.x = MAP.bankX;
+    again.y = MAP.bankY;
+    const balance = again.coins;
+    w.claimContract(again.id, { contract: 'first-haul' }, 9000);
+    assert.equal(again.coins, balance);
+    const legacy = JSON.parse(JSON.stringify(saved));
+    delete legacy.contracts;
+    legacy.pveKills = 100;
+    legacy.bossKills = 50;
+    const migrated = recoverState({ version: 5, profiles: { old: legacy }, escrows: [], marketListings: [] }).profiles.get('old')!;
+    assert.deepEqual(migrated.contracts, { progress: {}, claimed: [] });
+    assert.equal(migrated.coins, balance);
+    const bad = { ...legacy, contracts: { progress: { 'first-haul': [-1, 4] }, claimed: ['first-haul'] } };
+    assert.throws(() => recoverState({ version: 5, profiles: { old: bad }, escrows: [], marketListings: [] }), /contract/);
+});
+test('locked actions, empty banking and unsuccessful workshop batches earn no contract progress', () => {
+    const { w, p } = setup();
+    p.x = MAP.bankX;
+    p.y = MAP.bankY;
+    w.interact(p, 1000);
+    w.craft(p.id, { recipe: 'planks', quantity: 2 }, 2000);
+    assert.deepEqual(p.contracts.progress, {});
+    p.banked.wood = 4;
+    w.craft(p.id, { recipe: 'planks', quantity: 2 }, 3000);
+    assert.equal(p.items.plank, 2);
+    assert.deepEqual(p.contracts.progress, {}, 'successful crafting before unlock is not banked for later');
+    p.x = 1000;
+    const e = createEnemy('brute', 'early', 1020, 550);
+    w.raiders.push(e);
+    w.hitEnemy(e, p, 1000, 4000);
+    assert.deepEqual(p.contracts.progress, {}, 'early monster kills are not retroactively awarded');
+    const copied = profileOf(p);
+    copied.contracts.claimed.push('first-haul');
+    assert.deepEqual(p.contracts.claimed, [], 'save capture does not share a mutable claim ledger');
+});
+test('a full bank rejects the whole deposit without coins, XP, contract credit or save corruption', () => {
+    const { w, p } = setup();
+    p.x = MAP.bankX;
+    p.y = MAP.bankY;
+    p.banked.wood = stackLimit('wood');
+    p.bag.wood = 1;
+    p.bag.ore = 1;
+    w.interact(p, 1000);
+    assert.equal(p.coins, 0);
+    assert.equal(p.xp.wood, 0);
+    assert.equal(p.xp.ore, 0);
+    assert.equal(p.bag.wood, 1);
+    assert.equal(p.bag.ore, 1);
+    assert.equal(p.banked.ore, 0);
+    assert.deepEqual(p.contracts.progress, {});
+    assert.doesNotThrow(() => recoverState({ version: 5, profiles: { test: profileOf(p) }, marketListings: [], escrows: [] }));
+    p.banked.wood--;
+    w.interact(p, 2000);
+    assert.equal(p.bag.wood, 0);
+    assert.equal(p.bag.ore, 0);
+    assert.equal(p.coins, 13);
+    assert.deepEqual(p.contracts.progress['first-haul'], [0, 2]);
+});

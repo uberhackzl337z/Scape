@@ -78,6 +78,15 @@ export class GearView {
                 card.append(el('p', SETS[(g.set ?? g.legendary)!].effect, 'gear-passive'));
             card.append(el('small', `${n} owned · ${g.armor} armor · +${g.power} power`));
             const equipped = p.equipment[g.slot] === id;
+            if (!equipped) {
+                const candidate = { ...p, items: { ...p.items, [id]: Math.max(1, n) }, equipment: { ...p.equipment, [g.slot]: id } };
+                const compared = gearStats(candidate), signed = (n: number) => `${n >= 0 ? '+' : ''}${n}`;
+                card.append(el('p', `Compared with current loadout: ${signed(compared.armor - stats.armor)} armor, ${signed(compared.power - stats.power)} power.`, 'gear-comparison'));
+                for (const element of ['fire', 'storm', 'frost'] as const) {
+                    if (compared.counts[element] !== stats.counts[element] || compared.ranks[element] !== stats.ranks[element])
+                        card.append(el('small', `${SETS[element].name}: ${stats.counts[element]} → ${compared.counts[element]} set pieces; passive ${compared.ranks[element] ? 'active' : 'inactive'}. Check Elemental sets for thresholds.`));
+                }
+            }
             const button = el('button', equipped ? 'Unequip' : n ? 'Equip' : 'Find, craft or buy');
             button.disabled = !atBank || n < 1;
             button.addEventListener('click', () => this.send({ type: 'equipment', slot: g.slot, item: equipped ? null : id }));

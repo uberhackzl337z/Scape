@@ -24,7 +24,7 @@ export function serverConfig(env: NodeJS.ProcessEnv) {
     if (!/^[a-z0-9-]{1,48}$/.test(worldId))
         throw new Error('Invalid WORLD_ID');
     return { production, host, port, capacity, storage: storage as 'json' | 'sqlite', origin, worldId,
-        worldName: (env.WORLD_NAME ?? 'The Crossing').replace(/[^a-zA-Z0-9 _-]/g, '').slice(0, 40) || 'The Crossing' };
+        worldName: (env.WORLD_NAME ?? 'Scape').replace(/[^a-zA-Z0-9 _-]/g, '').slice(0, 40) || 'Scape' };
 }
 export function validOrigin(origin: unknown, host: unknown, publicOrigin?: string) {
     if (typeof origin !== 'string')

@@ -1,4 +1,4 @@
-# CodyScape — The Crossing
+# Scape
 
 A lightweight 2D multiplayer prototype: gather in the outer groves, risk your haul in the contested crossing, and reach the central bank to earn XP.
 
@@ -26,6 +26,21 @@ The release direction is one hosted, interconnected browser world. Players will 
 - **Escape / Field guide:** release movement controls and open instructions. The shared world continues running.
 
 Wood earns 10 XP and ore earns 14 XP when banked. Skill levels increase gathering speed. The bag holds 12 resources. Dying drops carried resources and respawns you after three seconds; banked progress is retained. Dropped bags expire after 90 seconds. Disconnecting also drops carried resources.
+
+## Expedition contracts
+
+Press **J / Contracts** for a server-owned journal with objectives, progress and exact rewards. Complete and claim four contracts in order at the central bank, alive and outside a duel:
+
+| Contract | Objective after unlock | One-time reward |
+| --- | --- | --- |
+| Bring it home | Gather 4 resources at sites and bank 4 carried resources | 30 coins |
+| Supply the expedition | Craft 2 planks and/or metal bars | 45 coins |
+| Clear the crossing | Contribute to 3 ordinary monster defeats, alive and nearby | 60 coins |
+| The Hollow expedition | Contribute to a Warden defeat, alive and nearby | 120 coins |
+
+These are new prototype mechanics, not recovered original requirements. Claims retain your items and unlock the next contract. Earlier actions do not count toward locked contracts. Existing characters start with zero contract progress; existing XP, items and coins remain intact. The optional journal is stored alongside wallet and claims in the version5 world snapshot. Do not downgrade to an older server after earning contracts: older source does not retain this new field. Banking now rejects an entire haul if any stored resource would exceed its limit; use or sell storage before retrying.
+
+`node scripts/contracts-e2e.mjs` uses a disposable SQLite world to test normal network gathering, banking, crafting, fixed rewards, forged/repeated claim rejection and force-kill/restart retention. It is part of `pnpm run verify:cloud`.
 
 ## Equipment and elemental expedition — study 006
 

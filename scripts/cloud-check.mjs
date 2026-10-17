@@ -42,7 +42,7 @@ try {
     if (spawnError) throw spawnError;
     if (server.exitCode !== null || server.signalCode !== null) throw new Error(`Disposable server stopped: ${output}`);
     // Wait for our own process's readiness before probing a possibly occupied port.
-    if (output.includes('CodyScape is ready:')) break;
+    if (output.includes('Scape is ready:')) break;
     if (Date.now() >= deadline) throw new Error(`Disposable server did not start: ${output}`);
     await new Promise(resolveWait => setTimeout(resolveWait, 50));
   }
@@ -59,6 +59,7 @@ try {
 }
 
 for (const [label, script, extra] of [
+  ['Contract rewards, migration and SQLite crash retention', 'contracts-e2e.mjs', {}],
   ['Leaderboard search and pagination', 'scores-e2e.mjs', {}],
   ['Player market and offline seller payments', 'market-e2e.mjs', {}],
   ['Gathering, crafting, ranged combat and healing', 'skills-e2e.mjs', {}],

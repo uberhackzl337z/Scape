@@ -7,7 +7,7 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const pkg = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
 const releases = join(root, 'artifacts', 'releases');
 await mkdir(releases, { recursive: true });
-const target = await mkdtemp(join(releases, `codyscape-${pkg.version}-local-test-`));
+const target = await mkdtemp(join(releases, `scape-${pkg.version}-local-test-`));
 async function copy(source, destination) {
   await mkdir(dirname(destination), { recursive: true });
   await copyFile(source, destination);
@@ -44,14 +44,14 @@ await writeFile(join(target, 'START-LOCAL.cmd'), [
   'echo Keep this window open. When ready, open http://127.0.0.1:3030/ in your browser.',
   'node dist\server.js', 'pause', ''
 ].join('\r\n'));
-await writeFile(join(target, 'README.txt'), `CodyScape ${pkg.version} - LOCAL TEST BUILD
+await writeFile(join(target, 'README.txt'), `Scape ${pkg.version} - LOCAL TEST BUILD
 
 Requirements: Node.js 24.12 or newer (https://nodejs.org/) and a desktop browser.
 Node.js is NOT bundled. No compiler, package install, Steam account or payment needed.
 Extract the entire ZIP first; do not run inside the ZIP viewer.
 
 Windows: double-click START-LOCAL.cmd, keep the window open, then open
-http://127.0.0.1:3030/ after the server prints "CodyScape is ready".
+http://127.0.0.1:3030/ after the server prints "Scape is ready".
 This port is separate from the development game's port 3000.
 If port 3030 is already in use, close the other test server first.
 Other systems: in this folder run "node dist/server.js", then open port 3000.

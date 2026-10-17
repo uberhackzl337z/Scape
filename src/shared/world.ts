@@ -1,3 +1,4 @@
+import { readJournal, advance, complete, unlocked, CONTRACTS, type Journal } from './contracts.js';
 import { WEAPONS, ENEMIES, ABILITIES, isWeapon, angleGap, type WeaponId, type EnemyKind } from './combat.js';
 import { DuelSystem, type DuelOffer, type Duel } from './duels.js';
 import { Market, type Listing } from './market.js';
@@ -25,6 +26,7 @@ export type Input = {
     aim?: number;
 };
 export type Profile = {
+    contracts: Journal;
     equipment: Equipment;
     skills: SkillXp;
     publicId: string;
@@ -206,11 +208,11 @@ export function createPlayer(id: string, profile?: Partial<Profile>): Player {
     const items = { ...emptyStock(), ...profile?.items };
     const skills = { ...emptySkills(), ...profile?.skills };
     const weapon = isWeapon(profile?.weapon) && (!isItem(profile.weapon) || items[profile.weapon] > 0) ? profile.weapon : 'sword';
-    const p: Player = { name: 'Wanderer', xp: emptyBag(), banked: emptyBag(), runs: 0, kills: 0, ...profile, equipment: normalizeEquipment(items, profile?.equipment), skills, publicId: profile?.publicId || id, items, pveKills: profile?.pveKills ?? 0, bossKills: profile?.bossKills ?? 0, pvpScore: profile?.pvpScore ?? 0, pvpKills: profile?.pvpKills ?? 0, pvpDeaths: profile?.pvpDeaths ?? 0, duelKnockouts: profile?.duelKnockouts ?? 0, recentPvpWins: { ...profile?.recentPvpWins }, coins: profile?.coins ?? (profile?.banked?.wood ?? 0) * 5 + (profile?.banked?.ore ?? 0) * 8, duelWins: profile?.duelWins ?? 0, duelLosses: profile?.duelLosses ?? 0, duelBag: undefined, combatXp: profile?.combatXp ?? 0, weapon, id, x: 170, y: 550, hp: 100, bag: profile?.duelBag ? { ...profile.duelBag } : emptyBag(), input: cleanInput(null), lastInput: 0, gatherAt: 0, attackAt: 0, attackQueuedUntil: 0, respawnAt: 0, facing: 0, message: 'Find a resource. Hold E to gather; K opens skills and crafting.', messageUntil: 0, hitAt: 0, swingAt: 0, stamina: 100, dodgeUntil: 0, dodgeAt: 0, dodgeX: 1, dodgeY: 0, duelId: '', supplyAt: 0, craftAt: 0, restoreAt: 0, recentEnemyDamage: 0, dodgeTrainedAt: -1, auraAt: 0, stormAt: 0, frostAt: 0, abilityAt: 0 };
+    const p: Player = { name: 'Wanderer', xp: emptyBag(), banked: emptyBag(), runs: 0, kills: 0, ...profile, contracts: readJournal(profile?.contracts), equipment: normalizeEquipment(items, profile?.equipment), skills, publicId: profile?.publicId || id, items, pveKills: profile?.pveKills ?? 0, bossKills: profile?.bossKills ?? 0, pvpScore: profile?.pvpScore ?? 0, pvpKills: profile?.pvpKills ?? 0, pvpDeaths: profile?.pvpDeaths ?? 0, duelKnockouts: profile?.duelKnockouts ?? 0, recentPvpWins: { ...profile?.recentPvpWins }, coins: profile?.coins ?? (profile?.banked?.wood ?? 0) * 5 + (profile?.banked?.ore ?? 0) * 8, duelWins: profile?.duelWins ?? 0, duelLosses: profile?.duelLosses ?? 0, duelBag: undefined, combatXp: profile?.combatXp ?? 0, weapon, id, x: 170, y: 550, hp: 100, bag: profile?.duelBag ? { ...profile.duelBag } : emptyBag(), input: cleanInput(null), lastInput: 0, gatherAt: 0, attackAt: 0, attackQueuedUntil: 0, respawnAt: 0, facing: 0, message: 'J opens your expedition contracts. Hold E at resource sites; bank your haul for XP.', messageUntil: 0, hitAt: 0, swingAt: 0, stamina: 100, dodgeUntil: 0, dodgeAt: 0, dodgeX: 1, dodgeY: 0, duelId: '', supplyAt: 0, craftAt: 0, restoreAt: 0, recentEnemyDamage: 0, dodgeTrainedAt: -1, auraAt: 0, stormAt: 0, frostAt: 0, abilityAt: 0 };
     p.skills = skillRecord(p);
     return p;
 }
-export function profileOf(p: Profile): Profile { return { equipment: { ...p.equipment }, skills: skillRecord(p), publicId: p.publicId, items: { ...p.items }, pveKills: p.pveKills, bossKills: p.bossKills, pvpScore: p.pvpScore, pvpKills: p.pvpKills, pvpDeaths: p.pvpDeaths, duelKnockouts: p.duelKnockouts, recentPvpWins: { ...p.recentPvpWins }, name: p.name, xp: { ...p.xp }, banked: { ...p.banked }, runs: p.runs, kills: p.kills, combatXp: p.combatXp, weapon: p.weapon, coins: p.coins, duelWins: p.duelWins, duelLosses: p.duelLosses }; }
+export function profileOf(p: Profile): Profile { return { contracts: readJournal(p.contracts), equipment: { ...p.equipment }, skills: skillRecord(p), publicId: p.publicId, items: { ...p.items }, pveKills: p.pveKills, bossKills: p.bossKills, pvpScore: p.pvpScore, pvpKills: p.pvpKills, pvpDeaths: p.pvpDeaths, duelKnockouts: p.duelKnockouts, recentPvpWins: { ...p.recentPvpWins }, name: p.name, xp: { ...p.xp }, banked: { ...p.banked }, runs: p.runs, kills: p.kills, combatXp: p.combatXp, weapon: p.weapon, coins: p.coins, duelWins: p.duelWins, duelLosses: p.duelLosses }; }
 export const ownsWeapon = (p: Profile, weapon: WeaponId) => !isItem(weapon) || p.items[weapon] > 0;
 export function bestWeapon(p: Profile | undefined, family: 'sword' | 'spear' | 'axe'): WeaponId { const upgrade = ({ sword: 'steelSword', spear: 'warSpear', axe: 'battleAxe' } as const)[family]; return p && p.items[upgrade] > 0 ? upgrade : family; }
 export function createEnemy(kind: EnemyKind, id: string, x: number, y: number, phase = 0): Raider {
@@ -376,6 +378,26 @@ export class World {
                 this.hitEnemy(enemy, p, burn.damage, now, 'pyromancy', false);
             }
         }
+    }
+    claimContract(id: string, raw: unknown, now: number) {
+        const p = this.players.get(id);
+        if (!p || !raw || typeof raw !== 'object')
+            return;
+        const c = CONTRACTS.find(c => c.id === (raw as Record<string, unknown>).contract);
+        if (!this.canTrade(p)) {
+            this.say(p, 'Claim contract rewards at the bank, alive and outside a duel.', now);
+            return;
+        }
+        if (!c || !unlocked(p.contracts, CONTRACTS.indexOf(c)) || !complete(p.contracts, c.id) || p.contracts.claimed.includes(c.id)) {
+            this.say(p, 'This contract is not ready or was already rewarded.', now);
+            return;
+        }
+        if (!Number.isSafeInteger(p.coins + c.reward))
+            return;
+        p.contracts.claimed.push(c.id);
+        p.coins += c.reward;
+        this.economyRevision++;
+        this.say(p, `${c.name}: earned exactly ${c.reward} coins. Reward claimed.`, now);
     }
     craft(id: string, raw: unknown, now: number) { craft(this, id, raw, now); }
     train(p: Player, skill: Parameters<typeof gainSkill>[1], xp: number) { gainSkill(p, skill, xp); this.economyRevision++; }
@@ -567,6 +589,7 @@ export class World {
                     gainSkill(p, 'combat', ENEMIES[enemy.kind].xp);
                     p.kills++;
                     p.pveKills++;
+                    advance(p.contracts, enemy.kind === 'boss' ? 'boss' : 'monster', 1);
                     this.awardGear(p, enemy.kind === 'boss', now);
                     if (enemy.kind === 'boss')
                         p.bossKills++;
@@ -592,6 +615,11 @@ export class World {
                 p.gatherAt = now + 800;
                 return;
             }
+            if (RESOURCE_IDS.some(r => (r === 'wood' || r === 'ore' ? p.banked[r] : p.items[r]) + (p.bag[r] ?? 0) > stackLimit(r))) {
+                this.say(p, 'Bank storage is full for part of this haul. Use or sell stored resources, then deposit again.', now);
+                p.gatherAt = now + 800;
+                return;
+            }
             const earned = haulXp(p.bag);
             const coins = RESOURCE_IDS.reduce((sum, r) => sum + (p.bag[r] ?? 0) * RESOURCES[r].coins, 0);
             p.coins += coins;
@@ -606,6 +634,7 @@ export class World {
                 else
                     p.items[kind] += n;
             }
+            advance(p.contracts, 'bank', amount);
             p.runs++;
             p.bag = emptyBag();
             p.gatherAt = now + 500;
@@ -639,6 +668,8 @@ export class World {
         }
         p.bag[node.kind] = (p.bag[node.kind] ?? 0) + 1;
         node.stock--;
+        advance(p.contracts, 'gather', 1);
+        this.economyRevision++;
         node.readyAt = now + 12000;
         p.gatherAt = now + Math.max(280, 700 - (level(skillXp(p, RESOURCES[node.kind].skill)) - 1) * 45);
         this.say(p, `${RESOURCES[node.kind].name} collected. XP is earned at the bank.`, now);

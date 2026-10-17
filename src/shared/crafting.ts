@@ -1,3 +1,4 @@
+import { advance } from './contracts.js';
 import { ITEMS, stackLimit, type ItemId } from './items.js';
 import { owned, changeStock } from './market.js';
 import { gainSkill, skillXp, type SkillId } from './skills.js';
@@ -76,6 +77,8 @@ export function craft(host: Host, id: string, raw: unknown, now: number) {
         changeStock(p, i as ItemId, -n! * q);
     changeStock(p, r.output, r.amount * q);
     gainSkill(p, r.skill, r.xp * q);
+    if (r.id === 'planks' || r.id === 'bars')
+        advance(p.contracts, 'craft', r.amount * q);
     p.craftAt = now + 800;
     host.economyRevision++;
     host.say(p, `Made ${r.amount * q} ${ITEMS[r.output].name}. +${r.xp * q} ${r.skill} XP.`, now);
