@@ -36,3 +36,7 @@ The game is named Scape. Display titles, default world name, package name and ne
 ## Expedition journal implementation (October 17 cloud continuation)
 
 Four sequential, one-time prototype contracts now connect site gathering/banking, workshop planks/bars, ordinary PvE and the Warden. The server owns progress and fixed coin rewards (30/45/60/120); J opens a native dialog with exact objectives, status and claim access. Legacy journals start empty without inferring historical actions. Journal and wallet share the existing transactional snapshot; rewards cannot be claimed repeatedly or from client-supplied progress. Free basics, separate secondaries, PvP and duel rules remain intact. Equipment comparison includes set-threshold stat changes; secondary feedback explains missing resources and cooldown; boss warnings show time to impact. See docs/CLOUD_HANDOFF.md for actual execution and next work.
+
+## Runtime refinement
+
+The combined feature source now includes one-pass nearest selection, padded scene culling, cached minimap terrain, cached SQLite writes and WebSocket heartbeat cleanup. Wilderness role/XP labels and nearby threat advice improve PvE readability. The inactive shop concept tab was removed. See docs/PERFORMANCE.md and docs/WILDERNESS_PVE.md for measurements, official MMORPG design sources and limitations. Preserve free basic attacks, uncapped gathering and saved identity. Changes are reviewable on a new feature PR based on the uncapped-haul branch; do not update older stack heads or auto-merge.

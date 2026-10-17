@@ -25,3 +25,10 @@ export const ABILITIES = {
     bow: { name: 'Twin shot', cooldown: 4500, stamina: 25, damage: 18, range: 280, arc: .3, description: 'Two aimed arrows; costs 2 arrows' },
     staff: { name: 'Frost nova', cooldown: 6000, stamina: 20, damage: 12, range: 125, arc: Math.PI, description: 'A chilling pulse; costs 1 focus rune; slow affects monsters' }
 } as const;
+
+export const ENEMY_TACTICS = {
+    skirmisher: { role: 'RUSHER', tip: 'Sidestep the slash, then punish its recovery.' },
+    hunter: { role: 'RANGED', tip: 'Strafe across its aim; do not run along the bolt line.' },
+    brute: { role: 'HEAVY', tip: 'Bait the slow slam, move out, then strike.' },
+    boss: { role: 'WORLD BOSS', tip: 'Sidestep bolt fans; leave the slam circle. Retreat to reset it.' }
+} as const;

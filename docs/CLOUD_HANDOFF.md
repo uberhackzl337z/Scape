@@ -27,4 +27,8 @@ No browser/computer visual inspection, human balance test, load test, container 
 2. Playtest the full four-contract journey with ordinary starter gear; adjust onboarding text/rewards only with evidence. Boss contract has simulation eligibility coverage; the live protocol test covers the first two contracts rather than a complete live boss journey.
 3. Continue inventory/crafting/market/leaderboard empty/error-state polish and combat readability. Consider more explicit set threshold comparisons and per-enemy warning accessibility.
 4. Review economy saturation/overflow beyond the fixed bank-storage path, save failure/recovery, reconnect pressure and public-competition abuse. Bearer identities still lack verified recovery; one-time contracts are per character, not per human.
-5. Keep all further commits on the feature branch and update PR #1. No auto-merge, main push, public deployment, payment work or production-world tests.
+5. Start further work from the newest verified feature PR head; review the existing PR stack before choosing a branch. Do not overwrite older stack heads. No auto-merge, main push, public deployment, payment work or production-world tests.
+
+## Runtime follow-up
+
+See PERFORMANCE.md and WILDERNESS_PVE.md for the next integrated runtime pass and its checks. Prioritize device frame profiling, reconnect pressure and a disposable full contract journey before expanding content. Proposed camp/event mechanics remain unimplemented.

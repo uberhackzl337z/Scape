@@ -1,3 +1,4 @@
+import { SocketHeartbeat } from './socket-heartbeat.js';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { WorldStore } from './storage.js';
@@ -100,6 +101,7 @@ const server = createServer(async (req, res) => {
         res.end('Not found');
     }
 });
+const heartbeat = new SocketHeartbeat();
 const wss = new WebSocketServer({ noServer: true, maxPayload: 2048 });
 server.on('upgrade', (req, socket, head) => {
     const origin = req.headers.origin;
@@ -238,6 +240,7 @@ wss.on('connection', ws => {
             void save();
         }
     });
+    ws.on('pong', () => heartbeat.pong(ws));
     ws.on('error', () => { });
 });
 let last = Date.now();
@@ -251,13 +254,15 @@ const loop = setInterval(() => {
         world.leaderboards = buildLeaderboards(profiles.values(), world.players.values());
     if (storageHealthy && savedEconomyRevision !== world.economyRevision)
         void save();
-    if (++step % 2 === 0) {
+    if (++step % 2 === 0 && clients.size > 0) {
         const data = JSON.stringify({ type: 'state', ...world.snapshot(now) });
         for (const ws of clients.keys())
             if (ws.readyState === WebSocket.OPEN && ws.bufferedAmount < 128000)
                 ws.send(data);
     }
 }, 50);
+const heartbeats = setInterval(() => heartbeat.tick(wss.clients), 30000);
+heartbeats.unref();
 const saves = setInterval(() => void save(), 10000);
 const { host, port } = config;
 await save();
@@ -267,6 +272,7 @@ server.listen(port, host, () => console.log(`Scape is ready: http://${host}:${po
 async function stop() {
     clearInterval(loop);
     clearInterval(saves);
+    clearInterval(heartbeats);
     world.dueling.cancelAll(Date.now());
     await save();
     for (const ws of wss.clients)
