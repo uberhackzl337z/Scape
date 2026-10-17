@@ -743,7 +743,7 @@ function actor(a: Actor) {
     }
     const moving = isPlayer && Math.hypot(pos.x - a.x, pos.y - a.y) > 1;
     const gathering = isPlayer ? gatherPose(a, gatherNow) : undefined;
-    const bob = gathering && !gatherView.reducedMotion ? Math.sin(gathering.progress * Math.PI * 2) * 1.8 : moving ? Math.sin(now / 80) * 1.2 : Math.sin(now / 600) * .5;
+    const bob = gathering ? (gatherView.reducedMotion ? 0 : Math.sin(gathering.progress * Math.PI * 2) * 1.8) : moving ? Math.sin(now / 80) * 1.2 : Math.sin(now / 600) * .5;
     if (isPlayer)
         elementView.aura(a, now);
     else
