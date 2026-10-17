@@ -37,7 +37,10 @@ try{
  await move(c,{x:800,y:550});
  for(const[slot,item]of[['offhand','stormGuard'],['charm','frostSigil']]){send(c,{type:'equipment',slot,item});await until(()=>me(c).equipment[slot]===item);}
  send(c,{type:'market',action:'equip',item:'emberStaff'});await until(()=>me(c).weapon==='emberStaff');
- await move(c,{x:1000,y:550});await until(()=>c.state.raiders.some(e=>e.burnUntil>c.state.time),7000);
+ await move(c,{x:1000,y:550});
+ // The aura only affects living enemies within range; capture state when it does not trigger.
+ try { await until(()=>c.state.raiders.some(e=>e.burnUntil>c.state.time),7000); }
+ catch (error) { throw new Error(`Ember aura not observed: ${JSON.stringify({player:{x:me(c).x,y:me(c).y,hp:me(c).hp,equipment:me(c).equipment},time:c.state.time,raiders:c.state.raiders.map(e=>({kind:e.kind,x:e.x,y:e.y,hp:e.hp,burnUntil:e.burnUntil}))})}`,{cause:error}); }
  await until(()=>me(c).attackAt<=c.state.time);const priorSwing=me(c).swingAt;
  send(c,{type:'input',x:0,y:0,attack:true,aim:-Math.PI/2});send(c,{type:'input',x:0,y:0,attack:false,aim:-Math.PI/2});
  await until(()=>me(c).swingAt>priorSwing);assert.equal(me(c).items.emberRune,0,'a quick basic shot works without runes');
