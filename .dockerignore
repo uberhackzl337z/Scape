@@ -1,0 +1,12 @@
+node_modules
+.pnpm-store
+dist
+data
+artifacts
+.git
+.codex
+.agents
+docs
+*.log
+.env
+.env.*

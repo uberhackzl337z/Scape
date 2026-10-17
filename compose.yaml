@@ -1,0 +1,34 @@
+services:
+  game:
+    build: .
+    restart: unless-stopped
+    init: true
+    environment:
+      PUBLIC_ORIGIN: https://${GAME_DOMAIN:?Set GAME_DOMAIN to your domain}
+      WORLD_ID: the-crossing
+      WORLD_NAME: The Crossing
+      MAX_PLAYERS: 16
+    volumes:
+      - world-data:/game/data
+    expose:
+      - "3000"
+    stop_grace_period: 20s
+  gateway:
+    image: caddy:2
+    restart: unless-stopped
+    environment:
+      GAME_DOMAIN: ${GAME_DOMAIN:?Set GAME_DOMAIN to your domain}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - gateway-data:/data
+      - gateway-config:/config
+    depends_on:
+      game:
+        condition: service_healthy
+volumes:
+  world-data:
+  gateway-data:
+  gateway-config:

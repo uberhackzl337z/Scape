@@ -1,0 +1,34 @@
+{
+  "name": "codyscape",
+  "version": "0.6.0",
+  "private": true,
+  "packageManager": "pnpm@10.28.0",
+  "type": "module",
+  "engines": {
+    "node": ">=24.12"
+  },
+  "scripts": {
+    "build": "tsc",
+    "check": "tsc --noEmit",
+    "start": "node dist/server.js",
+    "test": "node --test dist/tests/*.test.js",
+    "smoke": "node scripts/smoke.mjs",
+    "test:duels": "node scripts/duel-e2e.mjs",
+    "test:market": "node scripts/market-e2e.mjs",
+    "test:scores": "node scripts/scores-e2e.mjs",
+    "test:skills": "node scripts/skills-e2e.mjs",
+    "package:local": "pnpm run build && pnpm test && node scripts/package-local.mjs",
+    "test:equipment": "node scripts/equipment-e2e.mjs",
+    "backup:world": "node scripts/backup-world.mjs",
+    "verify:cloud": "node scripts/cloud-check.mjs",
+    "prepare:cloud": "node scripts/prepare-cloud-source.mjs"
+  },
+  "dependencies": {
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/ws": "^8.18.1",
+    "typescript": "^6.0.0"
+  }
+}
