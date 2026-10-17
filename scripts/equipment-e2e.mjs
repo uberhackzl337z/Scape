@@ -54,8 +54,19 @@ try{
  // Patrol positions depend on wall-clock phase. Walk into aura range instead of
  // assuming a monster will approach this fixed point within seven seconds.
  // Only pursue wild-zone monsters: safe-ground monsters cannot receive a burn.
- const approach=setInterval(()=>{const p=me(c),e=c.state.raiders.filter(e=>e.hp>0&&e.kind!=='boss'&&zone(e)==='wild').sort((a,b)=>Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y))[0];if(!e)return;const dx=e.x-p.x,dy=e.y-p.y,d=Math.hypot(dx,dy);send(c,{type:'input',x:d>45?dx/d:0,y:d>45?dy/d:0});},50);
- try{await until(()=>c.state.raiders.some(e=>e.burnUntil>c.state.time));}finally{clearInterval(approach);send(c,{type:'input',x:0,y:0});}
+ const approach = setInterval(() => {
+  const p = me(c);
+  const e = c.state.raiders.filter(e => e.hp > 0 && e.kind !== 'boss' && zone(e) === 'wild')
+   .sort((a,b) => Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y))[0];
+  if (!e) return;
+  const dx = e.x-p.x, dy = e.y-p.y, d = Math.hypot(dx,dy);
+  // Near a sanctuary edge, being within aura range is insufficient: the player
+  // must also leave sanctuary before the aura can legally affect the monster.
+  const scale = zone(p) === 'wild' && d <= 45 ? 0 : 1 / Math.max(30,d);
+  send(c, { type:'input', x:dx*scale, y:dy*scale });
+ },50);
+
+ try{await until(()=>c.state.raiders.some(e=>e.burnUntil>c.state.time));}catch(error){const p=me(c);throw new Error(`Burn approach failed: ${JSON.stringify({player:{x:p.x,y:p.y,hp:p.hp,equipment:p.equipment,zone:zone(p)},raiders:c.state.raiders.map(e=>({kind:e.kind,x:e.x,y:e.y,hp:e.hp,zone:zone(e),burn:e.burnUntil-c.state.time}))})}`,{cause:error});}finally{clearInterval(approach);send(c,{type:'input',x:0,y:0});}
  await until(()=>me(c).attackAt<=c.state.time);const priorSwing=me(c).swingAt;
  send(c,{type:'input',x:0,y:0,attack:true,aim:-Math.PI/2});send(c,{type:'input',x:0,y:0,attack:false,aim:-Math.PI/2});
  await until(()=>me(c).swingAt>priorSwing);assert.equal(me(c).items.emberRune,0,'a quick basic shot works without runes');
