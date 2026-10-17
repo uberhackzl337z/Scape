@@ -46,10 +46,9 @@ test('release, expired input, movement, combat, dodge, death and duels cancel th
     }
 });
 
-test('full bags, empty sites, out-of-range actions and bank deposits never invent a gathering pose', () => {
-    for (const mode of ['full', 'empty', 'far', 'bank'] as const) {
+test('empty sites, out-of-range actions and bank deposits never invent a gathering pose', () => {
+    for (const mode of ['empty', 'far', 'bank'] as const) {
         const { world, player } = fixture();
-        if (mode === 'full') player.bag.wood = MAP.capacity;
         if (mode === 'empty') { world.nodes[0].stock = 0; world.nodes[0].readyAt = 2000; }
         if (mode === 'far') player.x = 25;
         if (mode === 'bank') { player.x = MAP.bankX; player.y = MAP.bankY; player.bag.wood = 2; }

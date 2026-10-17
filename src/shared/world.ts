@@ -10,7 +10,7 @@ import { GEAR, GEAR_SLOTS, gearStats, isGear, normalizeEquipment, elementalPower
 import { stackLimit } from './items.js';
 export { WEAPONS, ENEMIES } from './combat.js';
 export type { WeaponId, EnemyKind } from './combat.js';
-export const MAP = { width: 1600, height: 1100, bankX: 800, bankY: 550, safeRadius: 96, dangerRadius: 330, capacity: 12, bossX: 1360, bossY: 550, bossRadius: 170 };
+export const MAP = { width: 1600, height: 1100, bankX: 800, bankY: 550, safeRadius: 96, dangerRadius: 330, bossX: 1360, bossY: 550, bossRadius: 170 };
 export type { Resource } from './skills.js';
 export type Bag = {
     wood: number;
@@ -617,13 +617,17 @@ export class World {
                 p.gatherAt = now + 800;
                 return;
             }
-            if (RESOURCE_IDS.some(r => (r === 'wood' || r === 'ore' ? p.banked[r] : p.items[r]) + (p.bag[r] ?? 0) > stackLimit(r))) {
-                this.say(p, 'Bank storage is full for part of this haul. Use or sell stored resources, then deposit again.', now);
+            const earned = haulXp(p.bag);
+            const coins = RESOURCE_IDS.reduce((sum, r) => sum + (p.bag[r] ?? 0) * RESOURCES[r].coins, 0);
+            const gains = new Map<typeof SKILL_IDS[number], number>();
+            for (const r of RESOURCE_IDS) gains.set(RESOURCES[r].skill, (gains.get(RESOURCES[r].skill) ?? 0) + (p.bag[r] ?? 0) * RESOURCES[r].xp);
+            if (!Number.isSafeInteger(earned) || !Number.isSafeInteger(p.coins + coins) ||
+                RESOURCE_IDS.some(r => !Number.isSafeInteger((r === 'wood' || r === 'ore' ? p.banked[r] : p.items[r]) + (p.bag[r] ?? 0))) ||
+                [...gains].some(([skill, gain]) => !Number.isSafeInteger(skillXp(p, skill) + gain))) {
+                this.say(p, 'This deposit exceeds supported saved totals. Your haul has been kept.', now);
                 p.gatherAt = now + 800;
                 return;
             }
-            const earned = haulXp(p.bag);
-            const coins = RESOURCE_IDS.reduce((sum, r) => sum + (p.bag[r] ?? 0) * RESOURCES[r].coins, 0);
             p.coins += coins;
             this.economyRevision++;
             for (const kind of RESOURCE_IDS) {
@@ -644,15 +648,11 @@ export class World {
             this.event(`${p.name} banked ${amount} resources. +${earned} XP.`);
             return;
         }
-        if (count(p.bag) >= MAP.capacity) {
-            this.say(p, 'Bag full. Take your haul to the bank.', now);
-            p.gatherAt = now + 700;
-            return;
-        }
         const loot = this.loot.find(l => distance(l, p) < 48 && count(l.bag) > 0);
         if (loot) {
             for (const kind of RESOURCE_IDS) {
-                const n = Math.min(loot.bag[kind] ?? 0, MAP.capacity - count(p.bag));
+                const n = loot.bag[kind] ?? 0;
+                if (!Number.isSafeInteger((p.bag[kind] ?? 0) + n) || !Number.isSafeInteger(count(p.bag) + n)) continue;
                 if (!n)
                     continue;
                 p.bag[kind] = (p.bag[kind] ?? 0) + n;
@@ -666,6 +666,11 @@ export class World {
         if (!node) {
             this.say(p, 'Move closer to a tree, rock, or dropped bag.', now);
             p.gatherAt = now + 500;
+            return;
+        }
+        if (!Number.isSafeInteger((p.bag[node.kind] ?? 0) + 1) || !Number.isSafeInteger(count(p.bag) + 1)) {
+            this.say(p, 'Resource total is too large. Bank some resources before gathering more.', now);
+            p.gatherAt = now + 700;
             return;
         }
         p.bag[node.kind] = (p.bag[node.kind] ?? 0) + 1;

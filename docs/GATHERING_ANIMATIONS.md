@@ -14,7 +14,7 @@ Hold E at a stocked resource site. Successful server gathering creates a short s
 
 These cover all ten resources and eight gathering skills. Tool animation and subtle body movement use the existing Canvas renderer. No images, sprites, audio, dependencies or additional animation timers are required. Reduced-motion preferences use a static tool/action indicator and suppress body movement and flying fragments.
 
-The server authors an optional transient `gathering` state only after a resource is actually collected. It expires at the existing gathering recovery time and clears on release, stale input, movement, attacking, dodging, death or a duel. Full bags, depleted/out-of-range sites and banking do not start a gathering action. Existing gathering rewards, cooldowns and combat rules are unchanged. A final successful stroke can finish after exhausting a node or filling the bag.
+The server authors an optional transient `gathering` state only after a resource is actually collected. It expires at the existing gathering recovery time and clears on release, stale input, movement, attacking, dodging, death or a duel. Depleted/out-of-range sites and banking do not start a gathering action. Existing gathering rewards, cooldowns and combat rules are unchanged. A final successful stroke can finish after exhausting a node.
 
 The client animates against the last server snapshot time plus elapsed monotonic frame time, avoiding a requirement that observers' wall clocks match. It yields to combat/dodge poses and rejects expired or distant actions. Legacy snapshots with no action simply draw normally. `profileOf` excludes visual state, so no saved-world migration or character reset is needed.
 

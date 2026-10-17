@@ -30,6 +30,8 @@ Keep new module filenames descriptive and in kebab-case. Use **Scape** in player
 - [Validation](../VALIDATION.md): recorded checks and their limits.
 - [Rendering performance](PERFORMANCE.md): measured interpolation costs, caching and profiling limits.
 - [Gathering animations](GATHERING_ANIMATIONS.md): skill tools, shared action state and cancellation behavior.
+- [Resource hauls](RESOURCE_HAULS.md): uncapped carrying and bounded inventory rendering.
+- [Stability review](STABILITY_REVIEW.md): observed PR checks and remaining operational limits.
 - [Release assessment](RELEASE_PLAN.md): historical local-test packaging and distribution research; check its recorded date.
 
 ## Keeping the browser game light
