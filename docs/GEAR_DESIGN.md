@@ -51,3 +51,7 @@ Sword: Crescent strike (25 stamina/4.5s); spear: Piercing thrust (25/4.5s); axe:
 The in-game Shop concept tab is explicitly unavailable. It proposes non-tradeable Crowns for appearances and possibly bank storage, without prices, checkout, a payable currency balance or any grant endpoint. Earned coins remain the only market/wager currency. No paid currency can currently be obtained, converted, wagered or cashed out. Buying a combat equipment slot would buy extra power and a set-bonus advantage, so all five slots remain free.
 
 Before a real store: verified/recoverable accounts; explicit products/prices; payment-provider terms; signed webhooks; an idempotent receipt/entitlement ledger; refund and chargeback handling; and transactional grants only after verified payments. Never let a client purchase message grant coins/gear. A provider and business setup have not been selected. This pass does not enable real-money wagering.
+
+## Cloud readability follow-up
+
+Equipment cards compare total loadout armor/power after replacement, including two-/three-piece set stat bonuses and the power cap. They list changed set-piece counts and passive activation; rarity alone does not decide the better loadout. Secondary status now displays cooldown, missing stamina, arrows or a focus rune. Warden warnings include time to impact. These UI changes still need human visual/playtesting.

@@ -1,3 +1,4 @@
+import { CONTRACTS, complete, unlocked } from '../shared/contracts.js';
 import { ABILITIES } from '../shared/combat.js';
 import { gearStats } from '../shared/equipment.js';
 import { paintBiomes, biomeAt } from './terrain-view.js';
@@ -55,6 +56,54 @@ const townView = new TownView(message => {
     if (socket?.readyState === WebSocket.OPEN)
         socket.send(JSON.stringify(message));
 }, () => { keys.clear(); mouseAttack = false; target = undefined; guide.close(); }, () => canvas.focus());
+const contractDialog = $<HTMLDialogElement>('contracts');
+let contractKey = '';
+function openContracts() {
+    if (!entered || dialogOpen())
+        return;
+    keys.clear();
+    mouseAttack = false;
+    target = undefined;
+    contractDialog.showModal();
+}
+$('open-contracts').addEventListener('click', openContracts);
+$('close-contracts').addEventListener('click', () => contractDialog.close());
+contractDialog.addEventListener('close', () => canvas.focus());
+function updateContracts() {
+    const p = me();
+    if (!p)
+        return;
+    const canClaim = p.hp > 0 && !p.duelId && zone(p) === 'bank';
+    text('contract-access', canClaim ? 'Bank reward desk open. Ready rewards can be claimed below.' : 'Return alive to the bank, outside a duel, to claim rewards.');
+    const key = JSON.stringify([p.contracts, canClaim]);
+    if (key === contractKey)
+        return;
+    contractKey = key;
+    $('contract-list').replaceChildren(...CONTRACTS.map((c, index) => {
+        const card = document.createElement('section');
+        card.className = 'contract-card';
+        const heading = document.createElement('h3');
+        heading.textContent = `${index + 1}. ${c.name}`;
+        const hint = document.createElement('p');
+        hint.textContent = c.hint;
+        const list = document.createElement('ul');
+        for (const [i, o] of c.objectives.entries()) {
+            const li = document.createElement('li');
+            li.textContent = `${o.label}: ${p.contracts.progress[c.id]?.[i] ?? 0} / ${o.target}`;
+            list.append(li);
+        }
+        const button = document.createElement('button');
+        const claimed = p.contracts.claimed.includes(c.id), locked = !unlocked(p.contracts, index), ready = complete(p.contracts, c.id);
+        button.textContent = claimed ? `Earned ${c.reward} coins · claimed` : locked ? `Locked · claim previous contract first · ${c.reward} coins` : ready ? `Claim ${c.reward} coins` : `In progress · reward ${c.reward} coins`;
+        button.disabled = claimed || locked || !ready || !canClaim;
+        button.addEventListener('click', () => {
+            if (socket?.readyState === WebSocket.OPEN)
+                socket.send(JSON.stringify({ type: 'contract', contract: c.id }));
+        });
+        card.append(heading, hint, list, button);
+        return card;
+    }));
+}
 let lastDuelId = '';
 const duelView = new DuelView(message => {
     if (socket?.readyState === WebSocket.OPEN)
@@ -188,6 +237,11 @@ window.addEventListener('keydown', event => {
         }
         return;
     }
+    if (entered && !dialogOpen() && event.code === 'KeyJ') {
+        event.preventDefault();
+        openContracts();
+        return;
+    }
     if (entered && !dialogOpen() && ['KeyM', 'KeyL', 'KeyK', 'KeyI'].includes(event.code)) {
         event.preventDefault();
         townView.open(event.code === 'KeyM' ? 'market' : event.code === 'KeyK' ? 'skills' : event.code === 'KeyI' ? 'gear' : 'scores');
@@ -313,6 +367,7 @@ function updateHud() {
         return;
     duelView.update(snapshot, selfId);
     townView.update(snapshot, selfId);
+    updateContracts();
     text('player-name', p.name);
     text('player-count', `${snapshot.players.length} online`);
     document.querySelector('.avatar')!.textContent = p.name[0].toUpperCase();
@@ -350,7 +405,8 @@ function updateHud() {
     const gear = gearStats(p);
     text('gear-summary', `${gear.armor} equipped armor · +${gear.power} power · ${(['fire', 'storm', 'frost'] as const).filter(e => gear.ranks[e]).join(' / ') || 'No elemental passives'}`);
     const secondary = ABILITIES[equipped.family], recovery = Math.max(0, Math.ceil((p.abilityAt - snapshot.time) / 1000));
-    text('ability-status', `${secondary.name}${recovery ? ' · ' + recovery + 's' : ''}`);
+    const blocked = p.hp <= 0 ? 'RESPAWNING' : recovery ? `${recovery}s recovery` : p.stamina < secondary.stamina ? `Need ${secondary.stamina} stamina` : equipped.family === 'bow' && p.items.arrow < 2 ? 'Need 2 arrows' : equipped.family === 'staff' && p.items.focusRune < 1 ? 'Need 1 focus rune' : 'READY';
+    text('ability-status', `${secondary.name} · ${blocked}`);
     $('cast-ability').title = `${secondary.description} · ${secondary.stamina} stamina · ${secondary.cooldown / 1000}s recovery · B alternative`;
     $<HTMLButtonElement>('cast-ability').disabled = p.hp <= 0 || recovery > 0 || p.stamina < secondary.stamina || equipped.family === 'bow' && p.items.arrow < 2 || equipped.family === 'staff' && p.items.focusRune < 1;
     text('dodge-status', p.stamina < 32 - Math.min(6, Math.floor((level(skillXp(p, 'agility')) - 1) / 3)) ? 'LOW STAMINA' : snapshot.time < p.dodgeAt ? 'RECOVERING' : 'DODGE READY');
@@ -361,7 +417,7 @@ function updateHud() {
         $('boss-health').style.width = `${boss.hp / ENEMIES.boss.hp * 100}%`;
         text('boss-hp', `${Math.ceil(boss.hp)} / ${ENEMIES.boss.hp}`);
         const warning = snapshot.warnings.find(w => w.source === boss.id);
-        text('boss-phase', boss.hp <= 0 ? `Defeated · returns in ${Math.max(1, Math.ceil((boss.respawnAt - snapshot.time) / 1000))}s` : warning ? warning.kind === 'fan' ? 'BOLT FAN · SIDESTEP' : 'GROUND SLAM · DODGE' : boss.hp < 325 ? 'ENRAGED · FASTER ATTACKS' : 'WATCH THE WARNING ZONES');
+        text('boss-phase', boss.hp <= 0 ? `Defeated · returns in ${Math.max(1, Math.ceil((boss.respawnAt - snapshot.time) / 1000))}s` : warning ? `${warning.kind === 'fan' ? 'BOLT FAN · SIDESTEP' : 'GROUND SLAM · DODGE'} · ${Math.max(0, (warning.at - snapshot.time) / 1000).toFixed(1)}s` : boss.hp < 325 ? 'ENRAGED · FASTER ATTACKS' : 'WATCH THE WARNING ZONES');
     }
     text('bag-count', `${count(p.bag)} / ${MAP.capacity}`);
     text('wood-count', p.bag.wood);

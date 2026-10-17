@@ -13,3 +13,7 @@ The owner's Daily Scape stability review is ACTIVE in ChatGPT's cloud scheduler,
 No public game server has been deployed. Cloud development and checks do not keep the multiplayer game online for players. The local preview still needs the machine running it; public play needs an always-on game host, persistent storage and operations work.
 
 For later reviews: read the latest repository documents, investigate actual failures, keep changes small and reviewable, preserve free left-click attacks and separate right-click abilities, test disposable worlds and use actual CI evidence. Never expose production saves, add purchases, spend money, deploy publicly, auto-merge or invent completed tests.
+
+## Restored cloud task observed
+
+A fresh task restored this published environment on October 17 and executed development and disposable multiplayer verification with Node24.19.0/pnpm10.28.0. The snapshot was older than the feature branch; an explicit fetch/checkout restored `scape-name-and-completion` at d8c4986 before implementation. Network-enabled execution supports local protocol test servers. See [CLOUD_HANDOFF.md](CLOUD_HANDOFF.md) for implemented contracts, evidence, limitations and next review priorities. This verifies restoration and hands-on cloud execution; completion of the separately scheduled review remains unobserved.

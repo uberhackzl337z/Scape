@@ -59,6 +59,7 @@ try {
 }
 
 for (const [label, script, extra] of [
+  ['Contract rewards, migration and SQLite crash retention', 'contracts-e2e.mjs', {}],
   ['Leaderboard search and pagination', 'scores-e2e.mjs', {}],
   ['Player market and offline seller payments', 'market-e2e.mjs', {}],
   ['Gathering, crafting, ranged combat and healing', 'skills-e2e.mjs', {}],

@@ -15,3 +15,9 @@ Docker deployment, public hosting, recoverable accounts, payment processing, loa
 ## Verified cloud execution
 
 The complete GitHub-hosted Linux verification passed for the imported source commit on October 17, 2026: https://github.com/uberhackzl337z/Scape/actions/runs/39007604310 . Cloud environment onboarding independently passed the same full suite plus a development-server smoke check. See docs/CLOUD_STATUS.md for environment publication and scheduling limits.
+
+## October 17 cloud continuation
+
+The restored published workspace was refreshed to the PR feature branch, retaining Scape naming, identity compatibility and the stable world ID. The cloud continuation added four contract regressions plus a disposable WebSocket/SQLite contract suite. Checks cover actual server reward amounts and eligibility, duplicate/forged claims, ordinary/boss contributor progress, locked and failed actions, partial journal persistence, legacy migration, atomic bank-storage rejection and forced-restart reward retention. See docs/CLOUD_HANDOFF.md for the final complete-run result and limitations.
+
+The baseline equipment test had a fixed-point burn timeout; an isolated rerun passed. Its input driver now approaches an enemy for the existing burn assertion rather than relying on a wall-clock patrol phase. No assertion was removed. Browser visual testing remains unperformed in this cloud task.

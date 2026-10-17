@@ -30,3 +30,7 @@ Use the pinned Node version in .nvmrc and pnpm version in package.json. Install 
 ## Scape naming and continued development
 
 The game is named Scape. Display titles, default world name, package name and new packaging use this name. The browser migrates pre-rename identity keys to scape-name/scape-token so existing characters remain accessible; the legacy read and stable world ID are compatibility details. Do not remove them as cosmetic cleanup. See docs/DEVELOPMENT_PRIORITIES.md for newly authorized implementation priorities.
+
+## Expedition journal implementation (October 17 cloud continuation)
+
+Four sequential, one-time prototype contracts now connect site gathering/banking, workshop planks/bars, ordinary PvE and the Warden. The server owns progress and fixed coin rewards (30/45/60/120); J opens a native dialog with exact objectives, status and claim access. Legacy journals start empty without inferring historical actions. Journal and wallet share the existing transactional snapshot; rewards cannot be claimed repeatedly or from client-supplied progress. Free basics, separate secondaries, PvP and duel rules remain intact. Equipment comparison includes set-threshold stat changes; secondary feedback explains missing resources and cooldown; boss warnings show time to impact. See docs/CLOUD_HANDOFF.md for actual execution and next work.

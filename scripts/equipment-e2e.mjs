@@ -37,7 +37,11 @@ try{
  await move(c,{x:800,y:550});
  for(const[slot,item]of[['offhand','stormGuard'],['charm','frostSigil']]){send(c,{type:'equipment',slot,item});await until(()=>me(c).equipment[slot]===item);}
  send(c,{type:'market',action:'equip',item:'emberStaff'});await until(()=>me(c).weapon==='emberStaff');
- await move(c,{x:1000,y:550});await until(()=>c.state.raiders.some(e=>e.burnUntil>c.state.time),7000);
+ await move(c,{x:1000,y:550});
+ // Patrol positions depend on wall-clock phase. Walk into aura range instead of
+ // assuming a monster will approach this fixed point within seven seconds.
+ const approach=setInterval(()=>{const p=me(c),e=c.state.raiders.filter(e=>e.hp>0&&e.kind!=='boss').sort((a,b)=>Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y))[0];if(!e)return;const dx=e.x-p.x,dy=e.y-p.y,d=Math.hypot(dx,dy);send(c,{type:'input',x:d>45?dx/d:0,y:d>45?dy/d:0});},50);
+ try{await until(()=>c.state.raiders.some(e=>e.burnUntil>c.state.time),7000);}finally{clearInterval(approach);send(c,{type:'input',x:0,y:0});}
  await until(()=>me(c).attackAt<=c.state.time);const priorSwing=me(c).swingAt;
  send(c,{type:'input',x:0,y:0,attack:true,aim:-Math.PI/2});send(c,{type:'input',x:0,y:0,attack:false,aim:-Math.PI/2});
  await until(()=>me(c).swingAt>priorSwing);assert.equal(me(c).items.emberRune,0,'a quick basic shot works without runes');
