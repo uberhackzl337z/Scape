@@ -4,7 +4,7 @@ A lightweight 2D multiplayer prototype: gather in the outer groves, risk your ha
 
 ## Development playtest
 
-Cloud development preparation and activation steps are in [docs/CLOUD_DEVELOPMENT.md](docs/CLOUD_DEVELOPMENT.md). `pnpm run verify:cloud` runs the full automated verification against disposable worlds. The GitHub workflow runs checks only; a cloud coding environment and a cloud refinement schedule require separate activation and verification.
+The Scape cloud environment is published and the daily cloud review targets this repository at 10 a.m. America/Chicago. Current evidence and remaining verification limits are in [docs/CLOUD_STATUS.md](docs/CLOUD_STATUS.md); setup details are in [docs/CLOUD_DEVELOPMENT.md](docs/CLOUD_DEVELOPMENT.md). `pnpm run verify:cloud` runs the full automated verification against disposable worlds. GitHub Actions also runs these checks independently of the owner's PC.
 
 Double-click **START-GAME.cmd**, keep its window open, and play at **http://127.0.0.1:3000**. If a copy is already running, use the browser link instead. Press Ctrl+C in its window to stop the server gracefully.
 

@@ -40,8 +40,6 @@ Private bearer access keys now resume characters across browsers/devices, and du
 
 ## Morning cloud development is separate
 
-The active 10 a.m. America/Chicago chat automation is local. It needs this PC awake, the desktop app running and this folder available. [Official scheduled-task requirements](https://learn.chatgpt.com/docs/automations?surface=app).
+The Scape cloud environment is published, and Daily Scape stability review is active in ChatGPT's cloud scheduler at 10 a.m. America/Chicago, targeting this repository. The old desktop duplicate is paused. Cloud onboarding and the first full GitHub-hosted verification passed; a manual scheduled-review trial was dispatched but its completion and a fresh snapshot restoration have not been observed. See [CLOUD_STATUS.md](CLOUD_STATUS.md) for the evidence and limits.
 
-Codex Cloud tasks can work while the PC sleeps once a project has a published cloud environment with its repositories and tools. Official setup uses connected GitHub repositories. Source is being connected to uberhackzl337z/Scape; no cloud development environment is proven active by a source import. The existing automation has **not** been moved to cloud. [Official Codex Cloud setup](https://learn.chatgpt.com/docs/cloud).
-
-The preparation path is to put sanitized source in the connected Scape repository, configure Node/pnpm and the documented checks in a cloud environment, verify a cloud task, then configure an available cloud scheduling workflow. A live game host can keep the game online independently of where development runs. A live server should never be the automation's disposable test world.
+A live game host is separate: this development setup does not deploy an always-on player world. [Official cloud environments](https://learn.chatgpt.com/docs/environments/cloud-environments), [scheduled tasks](https://learn.chatgpt.com/docs/automations?surface=app).

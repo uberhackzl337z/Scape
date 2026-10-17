@@ -21,7 +21,7 @@ Left mouse is a free basic attack: tap or hold, weapon recovery 0.35-0.5 seconds
 
 Character bearer keys are private access credentials, not verified recoverable accounts. Do not publish saves, keys, environment files or private discussions. Public competitive play and payments need account hardening, abuse controls, backups, load testing and an operations review. Docker/Caddy files are prepared but have not been exercised in a verified container environment.
 
-Source availability, automated checks, cloud AI development and public game hosting are separate milestones. Uploading this repository does not start a live game server or prove a cloud coding environment is active. The existing desktop morning review remains local unless its execution is actually migrated and verified.
+Source availability, automated checks, cloud AI development and public game hosting are separate milestones. Uploading this repository does not start a live game server or prove a cloud coding environment is active. The Scape cloud environment is published and a 10 a.m. America/Chicago cloud review targets this repository. The old local review is paused. See docs/CLOUD_STATUS.md for observed checks and remaining trial-run/restoration verification.
 
 ## Development and handoff
 
