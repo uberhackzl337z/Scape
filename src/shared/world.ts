@@ -53,6 +53,7 @@ export type Profile = {
 };
 export type GatherAction = { kind: Resource; x: number; y: number; at: number; until: number };
 export type Player = Profile & {
+    appearance?: string;
     id: string;
     x: number;
     y: number;

@@ -4,7 +4,7 @@ Implemented study006, October 16, 2026. Proposed pricing/monetization is disting
 
 ## Inventory model and references
 
-The game now separates three jobs: the 12-unit resource haul at risk in the field; persistent stacked materials/supplies/gear; and a five-slot combat loadout consisting of the selected main-hand weapon, body, offhand, charm and boots. Equipment survives ordinary death. Every combat slot is free. Gear changes require the bank, life and no active duel.
+The game now separates three jobs: the uncapped stacked resource haul at risk in the field; persistent stacked materials/supplies/gear; and a five-slot combat loadout consisting of the selected main-hand weapon, body, offhand, charm and boots. Equipment survives ordinary death. Every combat slot is free. Gear changes require the bank, life and no active duel.
 
 This is deliberately simpler than Diablo II's spatial inventory. Identical copies of a named gear template stack to99; arrows and spell runes stack to999; raw resource storage retains the existing larger limits. There is no inventory Tetris, random affix roll, individual durability or unique equipment-instance ID. A unique roll/affix system would need individual ownership and auction-instance records rather than these quantity stacks. That is future work, not hidden functionality.
 
@@ -46,12 +46,6 @@ Aim with the mouse, hold **left click** for the selected weapon's primary attack
 
 Sword: Crescent strike (25 stamina/4.5s); spear: Piercing thrust (25/4.5s); axe: Groundbreaker (35/6s); bow: Twin shot (25/4.5s and2 arrows); staff: Frost nova (20/6s and1 focus rune). Nova slows monsters, including when its direct damage can hit a duel opponent; it does not slow players. Damage, costs, targets, ownership and cooldowns are server-authoritative. Paid UI fields cannot assign damage or inventory.
 
-## Shop proposal, not a live store
+## Implemented account appearance store
 
-The in-game Shop concept tab is explicitly unavailable. It proposes non-tradeable Crowns for appearances and possibly bank storage, without prices, checkout, a payable currency balance or any grant endpoint. Earned coins remain the only market/wager currency. No paid currency can currently be obtained, converted, wagered or cashed out. Buying a combat equipment slot would buy extra power and a set-bonus advantage, so all five slots remain free.
-
-Before a real store: verified/recoverable accounts; explicit products/prices; payment-provider terms; signed webhooks; an idempotent receipt/entitlement ledger; refund and chargeback handling; and transactional grants only after verified payments. Never let a client purchase message grant coins/gear. A provider and business setup have not been selected. This pass does not enable real-money wagering.
-
-## Cloud readability follow-up
-
-Equipment cards compare total loadout armor/power after replacement, including two-/three-piece set stat bonuses and the power cap. They list changed set-piece counts and passive activation; rarity alone does not decide the better loadout. Secondary status now displays cooldown, missing stamina, arrows or a focus rune. Warden warnings include time to impact. These UI changes still need human visual/playtesting.
+The old Crowns/storage proposal is superseded by direct USD cosmetic purchases through Stripe Checkout. Two $4.99 nameplate appearances change lettering only. Accounts use verified email OTP and unique chosen names. All combat slots remain free, and earned coins remain the only auction/duel currency. No paid currency is introduced. Test mode is the default; real billing requires merchant/email/host configuration and explicit live-mode prerequisites. See ACCOUNTS_AND_STORE.md for implementation, refunds/disputes, setup, limits and external work still required.

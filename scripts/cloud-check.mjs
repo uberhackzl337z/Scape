@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 process.chdir(fileURLToPath(new URL('../', import.meta.url)));
 const env = { ...process.env };
-for (const key of ['APP_ENV', 'HOST', 'PORT', 'PUBLIC_ORIGIN', 'DATA_DIR', 'STORAGE', 'WORLD_ID', 'WORLD_NAME', 'MAX_PLAYERS', 'GAME_URL', 'TEST_STORAGE', 'TEST_PORT']) delete env[key];
+for (const key of ['APP_ENV', 'HOST', 'PORT', 'PUBLIC_ORIGIN', 'DATA_DIR', 'STORAGE', 'WORLD_ID', 'WORLD_NAME', 'MAX_PLAYERS', 'GAME_URL', 'GAME_ORIGIN', 'TEST_STORAGE', 'TEST_PORT', 'SUPABASE_URL', 'SUPABASE_ANON_KEY', 'ACCOUNTS_REQUIRED', 'ALLOW_GUEST_ALPHA', 'STORE_MODE', 'STORE_LIVE_ENABLED', 'STORE_SUPPORT_EMAIL', 'STORE_TERMS_URL', 'STORE_PRIVACY_URL', 'STORE_CHANNEL', 'STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET']) delete env[key];
 
 async function run(label, args, extra = {}) {
   console.log(`\nChecking: ${label}`);
@@ -60,6 +60,7 @@ try {
 }
 
 for (const [label, script, extra] of [
+  ['Email-account authorization and identity restart', 'accounts-e2e.mjs', {}],
   ['Contract rewards, migration and SQLite crash retention', 'contracts-e2e.mjs', {}],
   ['Leaderboard search and pagination', 'scores-e2e.mjs', {}],
   ['Player market and offline seller payments', 'market-e2e.mjs', {}],
