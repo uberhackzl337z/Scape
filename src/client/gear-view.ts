@@ -1,5 +1,4 @@
 import { GEAR, GEAR_SLOTS, RARITIES, SETS, gearStats, type GearId } from '../shared/equipment.js';
-import { SHOP } from '../shared/shop.js';
 import { WEAPONS } from '../shared/combat.js';
 import { zone, type Snapshot } from '../shared/world.js';
 const get = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -13,26 +12,18 @@ export class GearView {
     private key = '';
     private tab = 'loadout';
     constructor(private send: (message: Record<string, unknown>) => void) {
-        for (const tab of ['loadout', 'sets', 'shop'])
+        for (const tab of ['loadout', 'sets'])
             get(`gear-tab-${tab}`).addEventListener('click', () => {
                 this.tab = tab;
                 this.key = '';
-                for (const name of ['loadout', 'sets', 'shop']) {
+                for (const name of ['loadout', 'sets']) {
                     get(`gear-${name}`).classList.toggle('hidden', tab !== name);
                     get(`gear-tab-${name}`).setAttribute('aria-selected', String(tab === name));
                 }
             });
         for (const id of ['gear-filter', 'gear-owned'])
             get(id).addEventListener('change', () => { this.key = ''; });
-        for (const product of SHOP.products) {
-            const card = el('article', '', 'shop-card');
-            card.append(el('span', product.kind, 'eyebrow'), el('h3', product.name), el('p', product.description));
-            const button = el('button', 'Concept only · unavailable');
-            button.disabled = true;
-            card.append(button);
-            get('shop-products').append(card);
-        }
-        get('shop-rules').replaceChildren(...SHOP.rules.map(rule => el('li', rule)));
+
     }
     update(s: Snapshot, selfId: string) {
         if (!get<HTMLDialogElement>('gear').open)

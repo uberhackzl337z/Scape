@@ -1,3 +1,4 @@
+import { nearestWithin } from './spatial.js';
 import { readJournal, advance, complete, unlocked, CONTRACTS, type Journal } from './contracts.js';
 import { WEAPONS, ENEMIES, ABILITIES, isWeapon, angleGap, type WeaponId, type EnemyKind } from './combat.js';
 import { DuelSystem, type DuelOffer, type Duel } from './duels.js';
@@ -662,7 +663,7 @@ export class World {
             this.say(p, 'Recovered a dropped haul.', now);
             return;
         }
-        const node = this.nodes.filter(n => n.stock > 0 && distance(n, p) < 62).sort((a, b) => distance(a, p) - distance(b, p))[0];
+        const node = nearestWithin(this.nodes, p, 62, n => n.stock > 0);
         if (!node) {
             this.say(p, 'Move closer to a tree, rock, or dropped bag.', now);
             p.gatherAt = now + 500;
@@ -870,8 +871,8 @@ export class World {
                 }
                 continue;
             }
-            const candidates = [...this.players.values()].filter(p => !p.duelId && p.hp > 0 && zone(p) === 'wild' && (r.kind === 'boss' ? inBossArena(p) : !inBossArena(p) && distance(p, r) < 300));
-            const target = candidates.sort((a, b) => distance(a, r) - distance(b, r))[0];
+            const target = nearestWithin(this.players.values(), r, r.kind === 'boss' ? Infinity : 300,
+                p => !p.duelId && p.hp > 0 && zone(p) === 'wild' && (r.kind === 'boss' ? inBossArena(p) : !inBossArena(p)));
             if (target)
                 r.lastEngaged = now;
             if (r.kind === 'boss' && !target && r.lastEngaged && now - r.lastEngaged > 6000) {

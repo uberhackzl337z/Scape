@@ -1,6 +1,7 @@
+import { nearestWithin, inView } from '../shared/spatial.js';
 import { renderBag } from './bag-view.js';
 import { CONTRACTS, complete, unlocked } from '../shared/contracts.js';
-import { ABILITIES } from '../shared/combat.js';
+import { ABILITIES, ENEMY_TACTICS } from '../shared/combat.js';
 import { gearStats } from '../shared/equipment.js';
 import { paintBiomes, biomeAt } from './terrain-view.js';
 import { ElementView } from './element-view.js';
@@ -384,6 +385,13 @@ function updateHud() {
     text('zone-badge', area === 'wild' ? 'PVP ENABLED' : area === 'bank' ? 'SANCTUARY' : 'SAFE GROUND');
     $('zone-badge').className = `badge ${area === 'wild' ? 'danger' : area === 'bank' ? 'bank' : ''}`;
     text('health-note', area === 'wild' ? 'Space to strike. Shift to dodge red warnings.' : 'Safe ground restores your health.');
+    if (area === 'wild' && !p.duelId) {
+        const threat = nearestWithin(snapshot.raiders, p, 300, r => r.hp > 0 && zone(r) === 'wild' && (inBossArena(p) ? r.kind === 'boss' : r.kind !== 'boss'));
+        if (threat) {
+            text('zone-description', `${threat.name} · ${ENEMY_TACTICS[threat.kind].role.toLowerCase()} · ${Math.round(distance(p, threat))} away`);
+            text('health-note', ENEMY_TACTICS[threat.kind].tip);
+        } else text('health-note', 'LMB basic · RMB ability · Shift dodge. Other players can attack here.');
+    }
     if (p.duelId) {
         text('zone-label', 'The Duel Ring');
         text('zone-description', 'Agreed stakes. No outside interference.');
@@ -451,7 +459,7 @@ function updateHud() {
     }
     const hint = $('context-hint');
     const hintText = hint.querySelector('span')!;
-    const nearby = snapshot.nodes.filter(n => n.stock > 0 && distance(n, p) < 62).sort((a, b) => distance(a, p) - distance(b, p))[0];
+    const nearby = nearestWithin(snapshot.nodes, p, 62, n => n.stock > 0);
     if (area === 'bank')
         hintText.textContent = count(p.bag) ? `Hold to bank ${count(p.bag)} resources` : 'Haul secured. Head back to a grove.';
     else if (snapshot.loot.some(l => distance(l, p) < 48))
@@ -834,16 +842,20 @@ function actor(a: Actor) {
     }
     label(own ? `${a.name} · YOU` : a.name, 0, -47, own ? '#f2e5b8' : isPlayer ? '#b7d3c5' : '#dcac91', 10);
     if (!isPlayer)
-        label(a.kind === 'boss' ? 'WORLD BOSS · +300 XP' : `+${ENEMIES[a.kind].xp} COMBAT XP`, 0, -60, '#bb927d', 7);
+        label(`${ENEMY_TACTICS[a.kind].role} · +${ENEMIES[a.kind].xp} XP`, 0, -60, '#bb927d', 7);
     ctx.restore();
 }
+let miniTerrain: HTMLCanvasElement | undefined;
 function drawMini() {
-    mctx.fillStyle = '#293d2d';
-    mctx.fillRect(0, 0, 180, 124);
+    if (!miniTerrain) {
+        miniTerrain = document.createElement('canvas');
+        miniTerrain.width = 180; miniTerrain.height = 124;
+        miniTerrain.getContext('2d')!.drawImage(terrain, 0, 0, 180, 124);
+    }
+    mctx.drawImage(miniTerrain, 0, 0);
     const sx = 180 / 1600, sy = 124 / 1100;
     mctx.save();
     mctx.scale(sx, sy);
-    mctx.drawImage(terrain, 0, 0);
     for (const n of snapshot.nodes) {
         mctx.fillStyle = RESOURCES[n.kind].color;
         mctx.fillRect(n.x - 10, n.y - 10, 20, 20);
@@ -907,6 +919,7 @@ function frame(time: number) {
     label('CONTESTED GROUND', 800, 272, '#d5a488', 12);
     ctx.globalAlpha = 1;
     for (const l of snapshot.loot) {
+        if (!inView(l, camera, halfW, halfH, 100)) continue;
         circle(l.x, l.y, 20 + Math.sin(now / 200) * 2, '#cbb97816', '#cbb97888');
         ctx.fillStyle = '#b89a5f';
         ctx.fillRect(l.x - 8, l.y - 5, 16, 17);
@@ -927,11 +940,17 @@ function frame(time: number) {
         number,
         () => void
     ][] = [];
-    for (const n of snapshot.nodes)
+    for (const n of snapshot.nodes) {
+        if (!inView(n, camera, halfW, halfH)) continue;
         drawables.push([n.y, () => n.kind === 'wood' ? tree(n, !!p && distance(n, p) < 62 && n.stock > 0) : n.kind === 'ore' ? rock(n, !!p && distance(n, p) < 62 && n.stock > 0) : resourceNode(n, !!p && distance(n, p) < 62)]);
-    drawables.push([540, bank]);
-    for (const a of [...snapshot.raiders, ...snapshot.players])
-        drawables.push([a.y, () => actor(a)]);
+    }
+    if (inView({ x: MAP.bankX, y: MAP.bankY }, camera, halfW, halfH)) drawables.push([540, bank]);
+    for (const group of [snapshot.raiders, snapshot.players]) {
+        for (const a of group) {
+            const pos = smoothed.get(a.id) ?? a;
+            if (a.hp > 0 && inView(pos, camera, halfW, halfH)) drawables.push([pos.y, () => actor(a)]);
+        }
+    }
     drawables.sort((a, b) => a[0] - b[0]);
     for (const [, draw] of drawables)
         draw();

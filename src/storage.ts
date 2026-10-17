@@ -1,10 +1,11 @@
-import { DatabaseSync } from 'node:sqlite';
+import { DatabaseSync, type StatementSync } from 'node:sqlite';
 import { mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { writeAtomic } from './save-file.js';
 // One authoritative process owns this world. Economy + escrow commit together.
 export class WorldStore {
     private db?: DatabaseSync;
+    private snapshotWriter?: StatementSync;
     private writerLock?: DatabaseSync;
     constructor(readonly directory: string, readonly mode: 'json' | 'sqlite', readonly worldId: string) { }
     async open() {
@@ -25,6 +26,8 @@ export class WorldStore {
             this.db.exec(`PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA busy_timeout=5000;
         CREATE TABLE IF NOT EXISTS world_state (id INTEGER PRIMARY KEY CHECK(id=1), world_id TEXT NOT NULL,
           revision INTEGER NOT NULL, saved_at INTEGER NOT NULL, payload TEXT NOT NULL);`);
+            this.snapshotWriter = this.db.prepare(`INSERT INTO world_state (id,world_id,revision,saved_at,payload) VALUES (1,?,1,?,?)
+        ON CONFLICT(id) DO UPDATE SET revision=revision+1,saved_at=excluded.saved_at,payload=excluded.payload`);
             const row = this.db.prepare('SELECT world_id, payload FROM world_state WHERE id=1').get();
             if (row) {
                 if (row.world_id !== this.worldId)
@@ -50,8 +53,7 @@ export class WorldStore {
         }
         this.db.exec('BEGIN IMMEDIATE');
         try {
-            this.db.prepare(`INSERT INTO world_state (id,world_id,revision,saved_at,payload) VALUES (1,?,1,?,?)
-        ON CONFLICT(id) DO UPDATE SET revision=revision+1,saved_at=excluded.saved_at,payload=excluded.payload`)
+            this.snapshotWriter!
                 .run(this.worldId, Date.now(), payload);
             this.db.exec('COMMIT');
         }
@@ -60,5 +62,5 @@ export class WorldStore {
             throw error;
         }
     }
-    close() { this.db?.close(); this.db = undefined; this.writerLock?.close(); this.writerLock = undefined; }
+    close() { this.snapshotWriter = undefined; this.db?.close(); this.db = undefined; this.writerLock?.close(); this.writerLock = undefined; }
 }

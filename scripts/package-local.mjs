@@ -22,7 +22,7 @@ async function copyJs(source, destination) {
 }
 for (const name of ['index.html', 'style.css', 'favicon.svg'])
   await copy(join(root, 'public', name), join(target, 'public', name));
-for (const name of ['server.js', 'persistence.js', 'save-file.js', 'storage.js', 'server-config.js'])
+for (const name of ['server.js', 'socket-heartbeat.js', 'persistence.js', 'save-file.js', 'storage.js', 'server-config.js'])
   await copy(join(root, 'dist', name), join(target, 'dist', name));
 for (const dir of ['client', 'shared'])
   await copyJs(join(root, 'dist', dir), join(target, 'dist', dir));
