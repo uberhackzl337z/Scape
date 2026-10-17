@@ -425,10 +425,10 @@ function updateHud() {
         text('boss-phase', boss.hp <= 0 ? `Defeated · returns in ${Math.max(1, Math.ceil((boss.respawnAt - snapshot.time) / 1000))}s` : warning ? `${warning.kind === 'fan' ? 'BOLT FAN · SIDESTEP' : 'GROUND SLAM · DODGE'} · ${Math.max(0, (warning.at - snapshot.time) / 1000).toFixed(1)}s` : boss.hp < 325 ? 'ENRAGED · FASTER ATTACKS' : 'WATCH THE WARNING ZONES');
     }
     text('bag-count', `${count(p.bag).toLocaleString()} resources`);
-    text('wood-count', p.bag.wood);
-    text('ore-count', p.bag.ore);
-    text('haul-xp', `${haulXp(p.bag)} XP`);
-    text('other-count', count(p.bag) - p.bag.wood - p.bag.ore);
+    text('wood-count', p.bag.wood.toLocaleString());
+    text('ore-count', p.bag.ore.toLocaleString());
+    text('haul-xp', `${haulXp(p.bag).toLocaleString()} XP`);
+    text('other-count', (count(p.bag) - p.bag.wood - p.bag.ore).toLocaleString());
     const bagKey = JSON.stringify(p.bag);
     if (bagKey !== lastBag) {
         lastBag = bagKey;

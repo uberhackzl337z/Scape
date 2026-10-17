@@ -29,7 +29,7 @@ dialog.gear-dialog{width:min(1080px,94vw);max-width:min(1080px,94vw);box-sizing:
 /* Resource stacks stay bounded by resource kinds, never carried quantity. */
 .bag-slots{grid-template-columns:repeat(2,minmax(0,1fr))}
 .resource-stack{display:grid;grid-template-columns:24px minmax(0,1fr);column-gap:8px;align-items:center;padding:9px;background:#192824;border:1px solid #344638;min-width:0}
-.resource-stack>i{grid-row:span 2;justify-self:center}
+.resource-stack>i{justify-self:center}
 .resource-stack>span{font-size:10px;color:var(--muted)}
-.resource-stack>strong{font-size:12px;overflow-wrap:anywhere}
+.resource-stack>strong{grid-column:1/-1;font-size:12px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .bag-empty{grid-column:1/-1;margin:0;padding:10px;color:var(--muted);font-size:11px;line-height:1.5}
