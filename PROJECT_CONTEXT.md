@@ -1,7 +1,7 @@
 # Scape project context
 
 Updated October 17, 2026. Source repository: https://github.com/uberhackzl337z/Scape.
-Scape is a working title.
+The game is named Scape.
 
 ## Core concept and constraints
 
@@ -24,6 +24,8 @@ Character bearer keys are private access credentials, not verified recoverable a
 Source availability, automated checks, cloud AI development and public game hosting are separate milestones. Uploading this repository does not start a live game server or prove a cloud coding environment is active. The Scape cloud environment is published and a 10 a.m. America/Chicago cloud review targets this repository. The old local review is paused. See docs/CLOUD_STATUS.md for observed checks and remaining trial-run/restoration verification.
 
 ## Development and handoff
+
+See [docs/README.md](docs/README.md) for the current project map, and [docs/CLOUD_HANDOFF.md](docs/CLOUD_HANDOFF.md) for the implemented expedition contracts, verification evidence and remaining priorities. Keep private recovered transcripts and machine-specific operational history outside tracked source under ignored `docs/private/` when such notes are needed.
 
 Use the pinned Node version in .nvmrc and pnpm version in package.json. Install with pnpm install --frozen-lockfile. Run pnpm run verify:cloud for compilation, rules/storage tests, boss simulation and disposable multiplayer/economy checks. Never test against a live player's world or invent a successful check. Preserve production data; changes should be small and reviewable.
 

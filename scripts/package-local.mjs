@@ -2,12 +2,14 @@ import { mkdir, mkdtemp, readFile, readdir, writeFile, copyFile, realpath } from
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, relative } from 'node:path';
+import { SKILLS } from '../dist/shared/skills.js';
+import { RECIPES } from '../dist/shared/crafting.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const pkg = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
 const releases = join(root, 'artifacts', 'releases');
 await mkdir(releases, { recursive: true });
-const target = await mkdtemp(join(releases, `scape-${pkg.version}-local-test-`));
+const target = await mkdtemp(join(releases, `${pkg.name}-${pkg.version}-local-test-`));
 async function copy(source, destination) {
   await mkdir(dirname(destination), { recursive: true });
   await copyFile(source, destination);
@@ -60,13 +62,16 @@ Each copy runs its own world; sending this ZIP does not connect friends together
 The server listens only on this computer by default. Public multiplayer needs hosting.
 Browser identity is local to that browser/site; clearing it can lose character access.
 
-Controls: WASD/arrows move; E gather/bank; Space attack; Shift dodge;
-1/2/3 melee, 4 bow, 5 staff (own weapon and ammo first); K skills/workshop;
+Controls: WASD/arrows move; E gather/bank; left click/Space free basic attack;
+right click/B weapon ability; Shift dodge; 1/2/3 melee, 4 bow, 5 staff
+(own the weapon; basic shots need no ammo); K skills/workshop; J contracts;
 M market; L high scores; Q tonic; R stamina ration; T cooked fish; F Restoration.
+Secondary bow/staff abilities and Restoration still need their listed supplies.
 The in-game field guide explains combat and earned-coin wagers.
 
-Includes 25 trainable skills, 18 recipes, gathering, bank, PvE/boss combat,
-PvP/earned-coin duels, market and world high scores. No purchases or cash-out.
+Includes ${Object.keys(SKILLS).length} trainable skills, ${RECIPES.length} recipes,
+expedition contracts, gathering, bank, PvE/boss combat, PvP/earned-coin duels,
+market and world high scores. No purchases or cash-out.
 Prototype balance, temporary identities, local save files; not a commercial release.
 No existing player saves, authentication secrets, backups or development tools included.
 
