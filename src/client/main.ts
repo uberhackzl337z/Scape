@@ -6,6 +6,7 @@ import { ElementView } from './element-view.js';
 import { MAP, World, WEAPONS, ENEMIES, bestWeapon, inBossArena, count, haulXp, distance, zone, level, xpForLevel, type WeaponId, type Snapshot, type Input, type Node, type Raider } from '../shared/world.js';
 import { RESOURCES, RESOURCE_IDS, weaponSkill, skillXp } from '../shared/skills.js';
 import { ActorMotion } from './actor-motion.js';
+import { GatherView, gatherPose } from './gather-view.js';
 import { CombatView } from './combat-view.js';
 import { DuelView } from './duel-view.js';
 import { DUEL_RULES } from '../shared/duels.js';
@@ -14,6 +15,9 @@ const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as 
 const canvas = $<HTMLCanvasElement>('world');
 const ctx = canvas.getContext('2d')!;
 const combatView = new CombatView(ctx);
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+const gatherView = new GatherView(ctx, reducedMotion.matches);
+reducedMotion.addEventListener('change', event => { gatherView.reducedMotion = event.matches; });
 const elementView = new ElementView(ctx);
 let mouseAttack = false;
 let mousePoint: {
@@ -34,6 +38,7 @@ let entered = false;
 let hasJoined = false;
 let width = 0, height = 0, dpr = 1;
 let now = Date.now();
+let snapshotAt = performance.now(), gatherNow = now;
 let camera = { x: 800, y: 550 };
 let zoom = .9;
 let toastUntil = 0;
@@ -174,6 +179,7 @@ function connect() {
         }
         if (message.type === 'state') {
             snapshot = message;
+            snapshotAt = performance.now();
             if (me()?.weapon === selectedWeapon)
                 selectedWeapon = undefined;
             const duelId = me()?.duelId ?? '';
@@ -736,7 +742,8 @@ function actor(a: Actor) {
         ctx.globalAlpha = .8;
     }
     const moving = isPlayer && Math.hypot(pos.x - a.x, pos.y - a.y) > 1;
-    const bob = moving ? Math.sin(now / 80) * 1.2 : Math.sin(now / 600) * .5;
+    const gathering = isPlayer ? gatherPose(a, gatherNow) : undefined;
+    const bob = gathering && !gatherView.reducedMotion ? Math.sin(gathering.progress * Math.PI * 2) * 1.8 : moving ? Math.sin(now / 80) * 1.2 : Math.sin(now / 600) * .5;
     if (isPlayer)
         elementView.aura(a, now);
     else
@@ -781,58 +788,63 @@ function actor(a: Actor) {
         ctx.strokeStyle = '#564e32';
         ctx.strokeRect(-15, -6, 7, 11);
     }
-    const facing = a.facing;
-    const weapon = isPlayer ? WEAPONS[a.weapon].family : a.kind === 'hunter' ? 'bow' : a.kind === 'boss' || a.kind === 'brute' ? 'axe' : 'sword';
-    ctx.save();
-    ctx.rotate(facing);
-    ctx.strokeStyle = '#c5c3a5';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(12, 5);
-    ctx.lineTo(weapon === 'spear' ? 53 : 28, 5);
-    ctx.stroke();
-    ctx.strokeStyle = '#87734e';
-    ctx.beginPath();
-    ctx.moveTo(16, 0);
-    ctx.lineTo(16, 10);
-    ctx.stroke();
-    if (weapon === 'axe')
-        polygon([[21, -7], [35, -10], [39, 1], [28, 6]], '#b5b6a1', '#444a3a');
-    if (weapon === 'spear')
-        polygon([[53, 0], [65, 5], [53, 10]], '#ded2ad');
-    if (weapon === 'staff') {
-        ctx.strokeStyle = '#b89666';
+    if (gathering && isPlayer) {
+        gatherView.draw(a, gathering.action, gathering.progress);
+        label(RESOURCES[gathering.action.kind].action.toUpperCase(), 0, -62, RESOURCES[gathering.action.kind].color, 8);
+    } else {
+        const facing = a.facing;
+        const weapon = isPlayer ? WEAPONS[a.weapon].family : a.kind === 'hunter' ? 'bow' : a.kind === 'boss' || a.kind === 'brute' ? 'axe' : 'sword';
+        ctx.save();
+        ctx.rotate(facing);
+        ctx.strokeStyle = '#c5c3a5';
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.moveTo(5, 4);
-        ctx.lineTo(45, 4);
+        ctx.moveTo(12, 5);
+        ctx.lineTo(weapon === 'spear' ? 53 : 28, 5);
         ctx.stroke();
-        circle(45, 4, 6, '#e6aa64', '#e6d09b');
-    }
-    if (weapon === 'bow') {
-        ctx.strokeStyle = '#d7b97c';
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#87734e';
         ctx.beginPath();
-        ctx.arc(11, 0, 22, -1.2, 1.2);
+        ctx.moveTo(16, 0);
+        ctx.lineTo(16, 10);
         ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(19, -20);
-        ctx.lineTo(19, 20);
-        ctx.stroke();
-    }
-    if (now - a.swingAt < 250) {
-        ctx.strokeStyle = `rgba(234,218,164,${1 - (now - a.swingAt) / 250})`;
-        ctx.lineWidth = weapon === 'axe' ? 6 : 3;
-        ctx.beginPath();
-        if (weapon === 'spear') {
-            ctx.moveTo(20, 5);
-            ctx.lineTo(125, 5);
+        if (weapon === 'axe')
+            polygon([[21, -7], [35, -10], [39, 1], [28, 6]], '#b5b6a1', '#444a3a');
+        if (weapon === 'spear')
+            polygon([[53, 0], [65, 5], [53, 10]], '#ded2ad');
+        if (weapon === 'staff') {
+            ctx.strokeStyle = '#b89666';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(5, 4);
+            ctx.lineTo(45, 4);
+            ctx.stroke();
+            circle(45, 4, 6, '#e6aa64', '#e6d09b');
         }
-        else
-            ctx.arc(0, 0, weapon === 'axe' ? 62 : 45, -1.2, 1.2);
-        ctx.stroke();
+        if (weapon === 'bow') {
+            ctx.strokeStyle = '#d7b97c';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(11, 0, 22, -1.2, 1.2);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(19, -20);
+            ctx.lineTo(19, 20);
+            ctx.stroke();
+        }
+        if (now - a.swingAt < 250) {
+            ctx.strokeStyle = `rgba(234,218,164,${1 - (now - a.swingAt) / 250})`;
+            ctx.lineWidth = weapon === 'axe' ? 6 : 3;
+            ctx.beginPath();
+            if (weapon === 'spear') {
+                ctx.moveTo(20, 5);
+                ctx.lineTo(125, 5);
+            }
+            else
+                ctx.arc(0, 0, weapon === 'axe' ? 62 : 45, -1.2, 1.2);
+            ctx.stroke();
+        }
+        ctx.restore();
     }
-    ctx.restore();
     const maxHp = isPlayer ? 100 : ENEMIES[a.kind].hp;
     if (a.hp < maxHp) {
         ctx.fillStyle = '#17261d';
@@ -878,6 +890,7 @@ function frame(time: number) {
     const dt = Math.min(.1, (time - lastFrame) / 1000);
     lastFrame = time;
     now = Date.now();
+    gatherNow = snapshot.time + Math.max(0, time - snapshotAt);
     const p = me();
     motion.update(snapshot.players, snapshot.raiders, dt);
     if (p) {

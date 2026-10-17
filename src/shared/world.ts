@@ -50,6 +50,7 @@ export type Profile = {
     duelLosses: number;
     duelBag?: Bag;
 };
+export type GatherAction = { kind: Resource; x: number; y: number; at: number; until: number };
 export type Player = Profile & {
     id: string;
     x: number;
@@ -59,6 +60,7 @@ export type Player = Profile & {
     input: Input;
     lastInput: number;
     gatherAt: number;
+    gathering?: GatherAction;
     attackAt: number;
     respawnAt: number;
     attackQueuedUntil: number;
@@ -672,6 +674,7 @@ export class World {
         this.economyRevision++;
         node.readyAt = now + 12000;
         p.gatherAt = now + Math.max(280, 700 - (level(skillXp(p, RESOURCES[node.kind].skill)) - 1) * 45);
+        p.gathering = { kind: node.kind, x: node.x, y: node.y, at: now, until: p.gatherAt };
         this.say(p, `${RESOURCES[node.kind].name} collected. XP is earned at the bank.`, now);
     }
     dodge(p: Player, now: number) {
@@ -761,6 +764,7 @@ export class World {
         this.effects = this.effects.filter(e => now - e.at < 1400);
         for (const p of this.players.values()) {
             if (p.hp <= 0) {
+                delete p.gathering;
                 if (now >= p.respawnAt) {
                     p.x = 170;
                     p.y = 550;
@@ -796,6 +800,9 @@ export class World {
                 this.interact(p, now);
             if (p.input.attack || now <= p.attackQueuedUntil)
                 this.attack(p, now);
+            if (p.gathering && (now >= p.gathering.until || !p.input.interact || p.input.attack ||
+                p.input.x || p.input.y || p.duelId || p.hp <= 0 || now < p.dodgeUntil || now - p.swingAt < 250))
+                delete p.gathering;
         }
         this.tickElements(now);
         this.resolveWarnings(now);
