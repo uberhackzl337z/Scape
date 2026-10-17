@@ -4,6 +4,10 @@ Project layout, current documentation and download budgets: [project guide](docs
 
 A lightweight 2D multiplayer prototype: gather in the outer groves, risk your haul in the contested crossing, and reach the central bank to earn XP.
 
+## Email accounts and store
+
+Use **Account & store** for verified email OTP sign-in and a unique public account name. The browser store uses Stripe Checkout for two $4.99 non-tradeable nameplate appearances. It changes no combat stats or duel currency. Email delivery and test/live payments require external provider setup; no real charges or public deployment have been made. Setup, policies, refund/dispute handling and limits: [account/store guide](docs/ACCOUNTS_AND_STORE.md). The US business decision is browser-first on DigitalOcean; a future Steam client needs Steam Wallet integration.
+
 ## Development playtest
 
 The Scape cloud environment is published and the daily cloud review targets this repository at 10 a.m. America/Chicago. Current evidence and remaining verification limits are in [docs/CLOUD_STATUS.md](docs/CLOUD_STATUS.md); setup details are in [docs/CLOUD_DEVELOPMENT.md](docs/CLOUD_DEVELOPMENT.md). `pnpm run verify:cloud` runs the full automated verification against disposable worlds. GitHub Actions also runs these checks independently of the owner's PC.
@@ -48,7 +52,7 @@ These are new prototype mechanics, not recovered original requirements. Claims r
 
 I opens a five-slot loadout (main hand, body, offhand, charm, boots). Gear survives death; only the 12-unit raw-resource haul drops. Five rarity tiers label armor/accessory quality: Common, Uncommon, Rare, Epic, Legendary. Green set membership is separate from rarity. Emberguard burns nearby monsters, Stormcaller bursts/stuns, and Rimebound chills. Equip matching pieces for two-/three-piece bonuses, or mix elements. Legendary alternatives are Warden drops. Base armor and attack power also affect PvP; elemental procs/control currently affect monsters only.
 
-The world now has six distinct Canvas biomes without texture downloads. Left click performs a free repeatable basic attack; right click casts a weapon secondary on its own cooldown, and every combat slot is free. Equipment > Shop concept shows proposed cosmetics/storage and clearly disables purchases; no paid coins, paid gear, checkout or real-money wagering exists. Details, exact skill interactions, costs and acquisition rules are in `docs/GEAR_DESIGN.md`.
+The world now has six distinct Canvas biomes without texture downloads. Left click performs a free repeatable basic attack; right click casts a weapon secondary on its own cooldown, and every combat slot is free. Account & store provides email-bound account sign-in and Stripe Checkout for direct cosmetic nameplates. Test mode is the default; provider configuration and explicit live prerequisites are required for real charges. Paid products never become auction or duel coins. Details, exact skill interactions, costs and acquisition rules are in `docs/GEAR_DESIGN.md`.
 
 ## Skills and crafting — study 005
 
@@ -132,7 +136,7 @@ Combat XP is separate from gathering XP and is awarded immediately to recent, li
 
 Regular enemies return after 18 seconds. The boss has 650 HP, returns 90 seconds after defeat, and resets to full health after six seconds without a player in its arena. Stay inside the marked eastern stone circle to keep the encounter active. There is a solo fight simulation check in `scripts/boss-balance.mjs`; balance against human players remains an initial experiment.
 
-Character progress is stored in `data/world.sqlite`, imported from valid legacy JSON once. The browser keeps a private access key; copy it from Equipment and keep it secret to resume on another device. A character can have only one active session. These bearer identities are not verified accounts or email recovery. Equipment/stored progress survive disconnect; the unbanked field haul follows the documented drop/duel rules. `pnpm backup:world` makes a consistent SQLite backup; see `docs/HOSTING.md`.
+Character progress is stored in `data/world.sqlite`, imported from valid legacy JSON once. The browser keeps a private access key; copy it from Equipment and keep it secret to resume on another device. A character can have only one active session. These legacy bearer identities are retained for local development. Public release uses verified email OTP accounts with unique chosen names; linking retires guest-key access without resetting progress. Equipment/stored progress survive disconnect; the unbanked field haul follows the documented drop/duel rules. `pnpm backup:world` makes a consistent SQLite backup; see `docs/HOSTING.md`.
 
 ## Development
 
@@ -162,7 +166,7 @@ Install the Node version specified in .nvmrc and the pnpm version in package.jso
 - `src/tests/`: simulation tests.
 - `PROJECT_CONTEXT.md`: recovered game concept, decisions, and project handoff.
 
-TypeScript compiles to JavaScript under `dist/`. The only production dependency is `ws`. The server defaults to loopback (`127.0.0.1`), making this a local playable build rather than an internet deployment. `APP_ENV=production` requires a secure `PUBLIC_ORIGIN` and SQLite. Docker/Caddy deployment files are prepared; public access still needs a host/domain and an operations pass, account hardening, abuse controls, off-host backups and load testing. Do not expose saved profile files.
+TypeScript compiles to JavaScript under `dist/`. The only production dependency is `ws`. The server defaults to loopback (`127.0.0.1`), making this a local playable build rather than an internet deployment. `APP_ENV=production` requires a secure `PUBLIC_ORIGIN`, SQLite and configured email accounts unless an explicit isolated guest-alpha override is used. Docker/Caddy deployment files are prepared; public access still needs a host/domain and an operations pass, account hardening, abuse controls, off-host backups and load testing. Do not expose saved profile files.
 
 After building, `node scripts/boss-balance.mjs` checks a solo boss fight through normal simulation inputs. With the server running, `pnpm smoke` checks assets, multiplayer replication, weapon selection, dodge stamina, and rejection of client-supplied XP. `node scripts/format.mjs` formats TypeScript source with the existing compiler; it installs no extra formatter.
 

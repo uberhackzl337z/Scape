@@ -50,3 +50,7 @@ Private bearer access keys now resume characters across browsers/devices, and du
 The rented host keeps the game online when the developer's PC is off. It still needs paid hosting, monitoring, backups, updates and occasional incident handling; it will not maintain itself indefinitely. Cloud AI development and live game hosting are separate services. For previously recorded development scheduling evidence, consult CLOUD_STATUS.md; this hosting guide does not certify a current automation state.
 
 Railway remains a managed alternative: its current Hobby minimum is $5 including $5 usage, with actual resources billed beyond that. It needs a persistent volume and exactly one awake replica. DigitalOcean is the recommendation here because the existing Compose/Caddy plan maps directly to a single VM and gives a clear starting resource allocation; it does require Linux administration.
+
+## Email accounts and billing requirement
+
+The new production Compose configuration requires Supabase email OTP configuration and verified accounts. See ACCOUNTS_AND_STORE.md for setup, the US Stripe decision, test/live gates and what is still unconfigured. Guest mode is preserved for local development and explicitly isolated alpha/container tests. Account and order tables share world.sqlite and the same consistent backup. Steam in-client billing requires a separate Steam Wallet integration; STORE_CHANNEL=steam disables browser Stripe checkout.

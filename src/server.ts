@@ -4,11 +4,13 @@ import { readFile } from 'node:fs/promises';
 import { WorldStore } from './storage.js';
 import { serverConfig, validOrigin } from './server-config.js';
 import { SHOP } from './shared/shop.js';
+import { Commerce } from './commerce.js';
+import { AccountHttp, sessionCookie } from './account-http.js';
 import { fileURLToPath } from 'node:url';
 import { resolve, extname, sep } from 'node:path';
 import { randomUUID, randomBytes } from 'node:crypto';
 import { WebSocketServer, WebSocket } from 'ws';
-import { World, createPlayer, cleanInput, profileOf, type Profile } from './shared/world.js';
+import { World, createPlayer, cleanInput, profileOf, zone, count, type Profile } from './shared/world.js';
 import { recoverState, type SaveState, type EscrowRecord } from './persistence.js';
 import { buildLeaderboards, queryScores } from './shared/leaderboards.js';
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -18,6 +20,7 @@ const profiles = new Map<string, Profile>();
 world.savedProfiles = profiles;
 const tokens = new Map<string, string>();
 const clients = new Map<WebSocket, string>();
+const accountSessions = new Map<WebSocket, string>();
 const storage = new WorldStore(resolve(process.env.DATA_DIR ?? resolve(root, 'data')), config.storage, config.worldId);
 let storageHealthy = true;
 try {
@@ -57,13 +60,22 @@ function save() {
     return saving;
 }
 const mime: Record<string, string> = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml' };
+const commerce = new Commerce(storage.accounts, process.env);
+const accountHttp = new AccountHttp(commerce, () => storageHealthy,
+    token => profiles.has(token) && !storage.accounts!.bound(token) && ![...tokens.values()].includes(token),
+    async account => {
+        if (!profiles.has(account.character)) profiles.set(account.character, profileOf(createPlayer(randomUUID(), { name: account.name })));
+        await save(); if (!storageHealthy) throw new Error('World storage unavailable.');
+    }, character => { for (const [ws, id] of clients) if (tokens.get(id) === character) ws.close(1000, 'Signed out'); },
+    character => { const id = [...tokens].find(([, token]) => token === character)?.[0]; const p = id ? world.players.get(id) : undefined; return !p || p.hp > 0 && !p.duelId && zone(p) === 'bank' && count(p.bag) === 0; });
 const server = createServer(async (req, res) => {
+    const pathname = new URL(req.url ?? '/', 'http://localhost').pathname;
+    if (await accountHttp.handle(req, res, pathname)) return;
     if (req.method !== 'GET') {
         res.writeHead(405);
         res.end();
         return;
     }
-    const pathname = new URL(req.url ?? '/', 'http://localhost').pathname;
     if (pathname === '/health') {
         res.writeHead(storageHealthy ? 200 : 503, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
         res.end(JSON.stringify({ ok: storageHealthy, players: world.players.size }));
@@ -71,8 +83,8 @@ const server = createServer(async (req, res) => {
     }
     if (pathname === '/api/world' || pathname === '/api/shop') {
         res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify(pathname === '/api/shop' ? SHOP : { id: config.worldId, name: config.worldName,
-            online: world.players.size, capacity: config.capacity, shared: true, purchasesEnabled: false }));
+        res.end(JSON.stringify(pathname === '/api/shop' ? { ...SHOP, enabled: commerce.checkoutEnabled, mode: commerce.mode } : { id: config.worldId, name: config.worldName,
+            online: world.players.size, capacity: config.capacity, shared: true, purchasesEnabled: commerce.checkoutEnabled && commerce.mode === 'live' }));
         return;
     }
     let base = resolve(root, 'public');
@@ -111,7 +123,9 @@ server.on('upgrade', (req, socket, head) => {
     }
     wss.handleUpgrade(req, socket, head, ws => wss.emit('connection', ws, req));
 });
-wss.on('connection', ws => {
+wss.on('connection', (ws, req) => {
+    const accountSession = sessionCookie(req);
+    if (accountSession) accountSessions.set(ws, accountSession);
     let joined = false;
     let messages = 0;
     let scoreRequests = 0;
@@ -138,7 +152,10 @@ wss.on('connection', ws => {
                 return;
             }
             if (message.type === 'join' && !joined) {
-                const supplied = typeof message.token === 'string' ? message.token : '';
+                const account = storage.accounts?.resolve(sessionCookie(req));
+                if (commerce.authRequired && !account) { ws.send(JSON.stringify({ type: 'joinError', message: 'Sign in with your email to enter this world.' })); ws.close(1008); return; }
+                const supplied = account?.character ?? (typeof message.token === 'string' ? message.token : '');
+                if (!account && supplied && storage.accounts?.bound(supplied)) { ws.send(JSON.stringify({ type: 'joinError', message: 'This character is linked to an email account. Sign in to resume.' })); ws.close(1008); return; }
                 if (supplied && !profiles.has(supplied)) {
                     ws.send(JSON.stringify({ type: 'joinError', message: 'Access key not recognized by this world. Check the key or clear it to start a new character.' }));
                     ws.close(1008, 'Unknown access key');
@@ -153,7 +170,9 @@ wss.on('connection', ws => {
                 const id = randomUUID();
                 const saved = profiles.get(token);
                 const p = createPlayer(id, saved);
-                p.name = (typeof message.name === 'string' ? message.name : 'Wanderer').replace(/[^a-zA-Z0-9 _-]/g, '').trim().slice(0, 16) || 'Wanderer';
+                p.name = account?.name ?? ((typeof message.name === 'string' ? message.name : 'Wanderer').replace(/[^a-zA-Z0-9 _-]/g, '').trim().slice(0, 16) || 'Wanderer');
+                if (!account && storage.accounts?.db.prepare('SELECT id FROM accounts WHERE name_key=?').get(p.name.toLowerCase())) { ws.send(JSON.stringify({ type: 'joinError', message: 'That account name is reserved. Choose another guest name.' })); ws.close(1008); return; }
+                p.appearance = account?.selected ?? '';
                 world.players.set(id, p);
                 tokens.set(id, token);
                 clients.set(ws, id);
@@ -161,7 +180,7 @@ wss.on('connection', ws => {
                 clearTimeout(timer);
                 profiles.set(token, profileOf(p));
                 world.leaderboards = buildLeaderboards(profiles.values(), world.players.values());
-                ws.send(JSON.stringify({ type: 'welcome', id, token, world: { id: config.worldId, name: config.worldName } }));
+                ws.send(JSON.stringify({ type: 'welcome', id, ...(account ? { account: true } : { token }), name: p.name, world: { id: config.worldId, name: config.worldName } }));
                 ws.send(JSON.stringify({ type: 'state', ...world.snapshot(now) }));
             }
             else if (message.type === 'scores' && joined) {
@@ -218,6 +237,7 @@ wss.on('connection', ws => {
         }
     });
     ws.on('close', () => {
+        accountSessions.delete(ws);
         clearTimeout(timer);
         const id = clients.get(ws);
         if (id) {
@@ -249,6 +269,12 @@ const loop = setInterval(() => {
     const now = Date.now();
     if (storageHealthy)
         world.tick(Math.min(.1, (now - last) / 1000), now);
+    if (step % 20 === 0 && storage.accounts) for (const [ws, session] of accountSessions) {
+        const account = storage.accounts.resolve(session);
+        const p = world.players.get(clients.get(ws) ?? '');
+        if (!account) ws.close(1008, 'Sign in again');
+        else if (p) p.appearance = account.selected;
+    }
     last = now;
     if (step % 20 === 0)
         world.leaderboards = buildLeaderboards(profiles.values(), world.players.values());

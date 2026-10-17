@@ -41,3 +41,5 @@ After building, run `pnpm run check:assets`. It reports public assets and served
 Prefer measured improvements over broad rewrites. Explain any deliberate budget increase in the pull request. Do not add heavy media or dependencies just to change the appearance of progress.
 
 `pnpm run package:local` remains a developer testing aid. Players ultimately join one hosted world; distributing this package starts separate worlds. Generated instructions derive skill/recipe counts from compiled catalogs so they match the packaged build.
+
+- [Email accounts and store](ACCOUNTS_AND_STORE.md): chosen-name email OTP accounts, browser Stripe checkout, operational setup and release limits.

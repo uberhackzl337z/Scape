@@ -8,6 +8,17 @@ services:
       WORLD_ID: the-crossing
       WORLD_NAME: Scape
       MAX_PLAYERS: 16
+      ACCOUNTS_REQUIRED: "1"
+      SUPABASE_URL: ${SUPABASE_URL:?Set your Supabase project HTTPS origin}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:?Set your Supabase publishable or anon key}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STORE_MODE: ${STORE_MODE:-test}
+      STORE_LIVE_ENABLED: ${STORE_LIVE_ENABLED:-0}
+      STORE_SUPPORT_EMAIL: ${STORE_SUPPORT_EMAIL:-}
+      STORE_TERMS_URL: ${STORE_TERMS_URL:-}
+      STORE_PRIVACY_URL: ${STORE_PRIVACY_URL:-}
+      STORE_CHANNEL: web
     volumes:
       - world-data:/game/data
     expose:

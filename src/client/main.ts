@@ -1,4 +1,6 @@
 import { nearestWithin, inView } from '../shared/spatial.js';
+import { AccountView } from './account-view.js';
+import { PRODUCTS } from '../shared/shop.js';
 import { renderBag } from './bag-view.js';
 import { CONTRACTS, complete, unlocked } from '../shared/contracts.js';
 import { ABILITIES, ENEMY_TACTICS } from '../shared/combat.js';
@@ -142,6 +144,15 @@ try {
 }
 catch { /* Storage can be unavailable in restricted browser sessions. */ }
 $<HTMLInputElement>('name').value = store('scape-name') || 'Wanderer';
+let usingAccount = false;
+const accountView = new AccountView(() => store('scape-token'), name => {
+    usingAccount = true; $<HTMLInputElement>('name').value = name; store('scape-name', name);
+}, () => { usingAccount = false; entered = false; hasJoined = false; socket?.close(); store('scape-token', ''); $<HTMLInputElement>('name').value = 'Wanderer'; store('scape-name', 'Wanderer'); menu.classList.remove('hidden'); }, () => entered);
+for (const id of ['open-account', 'menu-account']) $(id).addEventListener('click', () => { keys.clear(); mouseAttack = false; target = undefined; });
+accountView.dialog.addEventListener('close', () => canvas.focus());
+void accountView.refresh().then(() => {
+    if (accountView.state?.account) { usingAccount = true; $<HTMLInputElement>('name').value = accountView.state.account.name; }
+});
 function toast(text: string) { $('toast').textContent = text; $('toast').classList.add('visible'); toastUntil = Date.now() + 3000; }
 function status(text: string, online: boolean) { $('connection').textContent = text; $('connection-dot').style.backgroundColor = online ? '#98b58a' : '#c4966f'; }
 function connect() {
@@ -164,7 +175,10 @@ function connect() {
             townView.scores.receive(message);
         if (message.type === 'welcome') {
             selfId = message.id;
-            store('scape-token', message.token);
+            usingAccount = message.account === true;
+            if (typeof message.token === 'string') store('scape-token', message.token);
+            if (usingAccount) { store('scape-token', ''); $<HTMLInputElement>('name').value = message.name; }
+            $<HTMLButtonElement>('copy-access-key').disabled = usingAccount;
             store('scape-name', $<HTMLInputElement>('name').value);
             menu.classList.add('hidden');
             entered = true;
@@ -196,7 +210,7 @@ function connect() {
         target = undefined;
         if (entered && !joinRejected) {
             toast('World connection lost. Reconnecting…');
-            setTimeout(connect, 1500);
+            setTimeout(() => { if (entered && !joinRejected) connect(); }, 1500);
         }
         else {
             if (!joinRejected)
@@ -303,6 +317,7 @@ function castAbility() {
 }
 $('cast-ability').addEventListener('click', () => { castAbility(); canvas.focus(); });
 $('copy-access-key').addEventListener('click', async () => {
+    if (usingAccount) { $('access-key-status').textContent = 'Sign in with your email to resume this account.'; return; }
     const key = store('scape-token');
     if (!key)
         return;
@@ -844,7 +859,8 @@ function actor(a: Actor) {
         ctx.fillStyle = isPlayer ? '#afbe87' : '#cc937c';
         ctx.fillRect(-20, -39, 40 * a.hp / maxHp, 4);
     }
-    label(own ? `${a.name} · YOU` : a.name, 0, -47, own ? '#f2e5b8' : isPlayer ? '#b7d3c5' : '#dcac91', 10);
+    const appearance = isPlayer ? PRODUCTS.find(p => p.id === a.appearance) : undefined;
+    label(own ? `${a.name} · YOU` : a.name, 0, -47, appearance?.color ?? (own ? '#f2e5b8' : isPlayer ? '#b7d3c5' : '#dcac91'), 10);
     if (!isPlayer)
         label(`${ENEMY_TACTICS[a.kind].role} · +${ENEMIES[a.kind].xp} XP`, 0, -60, '#bb927d', 7);
     ctx.restore();

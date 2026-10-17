@@ -33,3 +33,7 @@ dialog.gear-dialog{width:min(1080px,94vw);max-width:min(1080px,94vw);box-sizing:
 .resource-stack>span{font-size:10px;color:var(--muted)}
 .resource-stack>strong{grid-column:1/-1;font-size:12px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .bag-empty{grid-column:1/-1;margin:0;padding:10px;color:var(--muted);font-size:11px;line-height:1.5}
+
+.account-form{display:grid;gap:9px;margin:18px 0;max-width:480px}.account-form input{padding:11px;background:#102019;color:#e6dfcb;border:1px solid #68775b;border-radius:4px;font:inherit}.account-form label{font-size:13px}#account-store button{padding:10px 14px;background:#344735;color:#eee2bd;border:1px solid #71805d;cursor:pointer}#account-store button:disabled{opacity:.5;cursor:default}#account-feedback{min-height:24px;color:#e3c589}#close-account{float:right}#menu-account{margin:8px 0 16px;padding:10px;background:#314132;color:#e5d9b9;border:1px solid #71805d}
+
+.account-store-columns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px}.account-store-columns section{min-width:0}#account-store .account-form{margin:12px 0;gap:7px}#store-products{grid-template-columns:1fr}#store-products .set-card{gap:9px}#store-policies{font-size:12px}#store-policies a{color:#c7d9ad}@media(max-width:800px){.account-store-columns{grid-template-columns:1fr;gap:20px}}

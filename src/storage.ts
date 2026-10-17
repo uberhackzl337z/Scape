@@ -2,8 +2,10 @@ import { DatabaseSync, type StatementSync } from 'node:sqlite';
 import { mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { writeAtomic } from './save-file.js';
+import { Accounts } from './accounts.js';
 // One authoritative process owns this world. Economy + escrow commit together.
 export class WorldStore {
+    accounts?: Accounts;
     private db?: DatabaseSync;
     private snapshotWriter?: StatementSync;
     private writerLock?: DatabaseSync;
@@ -23,6 +25,7 @@ export class WorldStore {
                 throw new Error('Another server already owns this world directory.', { cause: error });
             }
             this.db = new DatabaseSync(join(this.directory, 'world.sqlite'));
+            this.accounts = new Accounts(this.db);
             this.db.exec(`PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA busy_timeout=5000;
         CREATE TABLE IF NOT EXISTS world_state (id INTEGER PRIMARY KEY CHECK(id=1), world_id TEXT NOT NULL,
           revision INTEGER NOT NULL, saved_at INTEGER NOT NULL, payload TEXT NOT NULL);`);
