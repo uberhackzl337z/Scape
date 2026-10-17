@@ -18,6 +18,7 @@ async function run(label, args, extra = {}) {
 }
 
 await run('TypeScript build', ['node_modules/typescript/bin/tsc']);
+await run('Browser download budget', ['scripts/asset-report.mjs']);
 const tests = (await readdir('dist/tests')).filter(name => name.endsWith('.test.js')).sort().map(name => `dist/tests/${name}`);
 if (!tests.length) throw new Error('No compiled rules/storage tests found');
 await run('Rules and persistence', ['--test', ...tests]);

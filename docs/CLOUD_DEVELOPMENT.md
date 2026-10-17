@@ -19,7 +19,7 @@ For interactive development, build and run pnpm start. The normal preview listen
 
 .github/workflows/game-checks.yml prepares GitHub-hosted checks on pushes, pull requests, manual dispatch and daily at 10 a.m. America/Chicago. These jobs run without the owner's PC. They test code and report failures; they do not independently implement improvements.
 
-The Scape Codex cloud environment has been prepared, tested and published. The daily cloud review is ACTIVE at 10 a.m. America/Chicago; the local duplicate is paused. The manual scheduled review trial and fresh snapshot restoration remain unverified. See [CLOUD_STATUS.md](CLOUD_STATUS.md) for evidence. Routine reviews use connected GitHub tools, cloud execution when available, and actual GitHub Actions results.
+The Scape Codex cloud environment has been prepared, tested and published. A fresh restored cloud task completed development and pushed the contracts/combat changes to pull request #1. The daily cloud review is ACTIVE at 10 a.m. America/Chicago; the local duplicate is paused. Completion of the separately scheduled review remains unverified. See [CLOUD_STATUS.md](CLOUD_STATUS.md) for evidence. Routine reviews use connected GitHub tools, cloud execution when available, and actual GitHub Actions results.
 
 [Official cloud environment setup](https://learn.chatgpt.com/docs/environments/cloud-environments)
 [Official automation guidance](https://learn.chatgpt.com/docs/automations?surface=app)

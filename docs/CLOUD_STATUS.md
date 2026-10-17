@@ -4,7 +4,7 @@ Verified October 17, 2026.
 
 Source lives in https://github.com/uberhackzl337z/Scape. The sanitized game source is public by the owner's explicit choice. Player saves, character keys, private conversations and personal machine paths are excluded.
 
-The Codex GitHub connector is restricted to Scape. The Scape cloud environment has been prepared, tested and published with private Only me access. Setup uses Node24.19.0 and pnpm10.28.0, retains dependencies, and records installation/startup instructions without production secrets. The complete verification suite and development-server smoke test passed during cloud setup. A fresh task restoring the published snapshot has not yet been verified.
+The Codex GitHub connector is restricted to Scape. The Scape cloud environment has been prepared, tested and published with private Only me access. Setup uses Node24.19.0 and pnpm10.28.0, retains dependencies, and records installation/startup instructions without production secrets. The complete verification suite and development-server smoke test passed during cloud setup. A fresh task subsequently restored the published snapshot, implemented expedition contracts and pushed its work to pull request #1; see the restoration evidence below.
 
 The first GitHub-hosted Linux run passed for commit 16b21791675b22448f18117aac7512bb6047e7b4: [Game stability checks](https://github.com/uberhackzl337z/Scape/actions/runs/39007604310). Compilation, all 74 rules/storage tests, boss simulation and disposable multiplayer, market, scores, skills, equipment and SQLite duel/restart checks passed. This is not a load test or a claim of bug-free balance.
 

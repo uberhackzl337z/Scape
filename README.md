@@ -1,5 +1,7 @@
 # Scape
 
+Project layout, current documentation and download budgets: [project guide](docs/README.md).
+
 A lightweight 2D multiplayer prototype: gather in the outer groves, risk your haul in the contested crossing, and reach the central bank to earn XP.
 
 ## Development playtest
