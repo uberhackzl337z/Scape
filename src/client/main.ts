@@ -460,12 +460,16 @@ function updateHud() {
     const hint = $('context-hint');
     const hintText = hint.querySelector('span')!;
     const nearby = nearestWithin(snapshot.nodes, p, 62, n => n.stock > 0);
+    const depleted = !nearby && area !== 'bank' ? nearestWithin(snapshot.nodes, p, 62, () => true) : undefined;
     if (area === 'bank')
         hintText.textContent = count(p.bag) ? `Hold to bank ${count(p.bag)} resources` : 'Haul secured. Head back to a grove.';
     else if (snapshot.loot.some(l => distance(l, p) < 48))
         hintText.textContent = 'Hold to recover dropped resources';
     else if (nearby)
         hintText.textContent = `Hold to ${RESOURCES[nearby.kind].action} · ${nearby.stock} left`;
+    else if (depleted) {
+        hintText.textContent = `${RESOURCES[depleted.kind].name} depleted · regrows in ${Math.max(1, Math.ceil((depleted.readyAt - snapshot.time) / 1000))}s`;
+    }
     else
         hintText.textContent = inBossArena(p) ? 'Boss ground. Dodge warnings; strike between attacks.' : area === 'wild' ? 'Space to fight. Shift to dodge.' : 'Gather, or seek the Warden in the east →';
     if (p.duelId)
