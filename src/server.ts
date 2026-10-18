@@ -175,6 +175,7 @@ wss.on('connection', (ws, req) => {
                 p.name = account?.name ?? ((typeof message.name === 'string' ? message.name : 'Wanderer').replace(/[^a-zA-Z0-9 _-]/g, '').trim().slice(0, 16) || 'Wanderer');
                 if (!account && storage.accounts?.db.prepare('SELECT id FROM accounts WHERE name_key=?').get(p.name.toLowerCase())) { ws.send(JSON.stringify({ type: 'joinError', message: 'That account name is reserved. Choose another guest name.' })); ws.close(1008); return; }
                 p.appearance = account?.selected ?? '';
+                p.aura = account?.aura ?? '';
                 world.players.set(id, p);
                 tokens.set(id, token);
                 clients.set(ws, id);
@@ -276,7 +277,7 @@ const loop = setInterval(() => {
         const account = storage.accounts.resolve(session);
         const p = world.players.get(clients.get(ws) ?? '');
         if (!account) ws.close(1008, 'Sign in again');
-        else if (p) p.appearance = account.selected;
+        else if (p) { p.appearance = account.selected; p.aura = account.aura; }
     }
     last = now;
     if (step % 20 === 0)

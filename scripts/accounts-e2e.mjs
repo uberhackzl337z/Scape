@@ -13,6 +13,8 @@ const a=store.accounts.register('verified-fixture','fixture@example.test','Chose
 const cookie='scape_session='+store.accounts.session(a.id);
 store.accounts.db.prepare("INSERT INTO store_orders (id,account,sku,amount,currency,session,status) VALUES ('paid-test',?,'sunset-name',499,'usd','cs_test','paid')").run(a.id);
 store.accounts.select(a.id,'sunset-name');
+store.accounts.db.prepare("INSERT INTO store_orders (id,account,sku,amount,currency,session,status) VALUES ('paid-aura',?,'astral-aura',499,'usd','cs_test_aura','paid')").run(a.id);
+store.accounts.select(a.id,'astral-aura');
 await store.write(JSON.stringify({version:5,profiles:{[a.character]:profileOf(createPlayer('public-test',{name:a.name,coins:73,combatXp:99}))},escrows:[],marketListings:[]}));store.close();
 let child;const sockets=[];
 async function until(check,ms=10000){const end=Date.now()+ms;while(!check()){assert.ok(Date.now()<end,'Account check timed out');await new Promise(r=>setTimeout(r,30));}}
@@ -22,15 +24,15 @@ async function join(session='', token=''){const c={id:'',state:null,error:'',wel
 const me=c=>c.state.players.find(p=>p.id===c.id);
 try{
  await boot();assert.ok((await join()).error);assert.ok((await join('',a.character)).error);
- let c=await join(cookie);assert.equal(me(c).name,'ChosenName');assert.equal(me(c).coins,73);assert.equal(me(c).appearance,'sunset-name');assert.equal(c.welcome.token,undefined);
+ let c=await join(cookie);assert.equal(me(c).name,'ChosenName');assert.equal(me(c).coins,73);assert.equal(me(c).appearance,'sunset-name');assert.equal(me(c).aura,'astral-aura');assert.equal(c.welcome.token,undefined);
  const data=JSON.stringify(c.state);assert.ok(!data.includes('fixture@example.test'));assert.ok(!data.includes('old-fixture-key'));
  assert.ok((await join(cookie)).error,'one active character session');
- const before=c.state.time;c.ws.send(JSON.stringify({type:'input',appearance:'glacier-name',coins:999999,name:'Hacked'}));
- await until(()=>c.state.time>before);assert.equal(me(c).name,'ChosenName');assert.equal(me(c).appearance,'sunset-name');assert.equal(me(c).coins,73);
+ const before=c.state.time;c.ws.send(JSON.stringify({type:'input',appearance:'glacier-name',aura:'forged-free-aura',coins:999999,name:'Hacked'}));
+ await until(()=>c.state.time>before);assert.equal(me(c).name,'ChosenName');assert.equal(me(c).appearance,'sunset-name');assert.equal(me(c).aura,'astral-aura');assert.equal(me(c).coins,73);
  assert.equal((await fetch(origin+'/data/world.sqlite')).status,404);
  await stop();await boot();c=await join(cookie);
- assert.equal(me(c).coins,73);assert.equal(me(c).combatXp,99);assert.equal(me(c).name,'ChosenName');assert.equal(me(c).appearance,'sunset-name');
+ assert.equal(me(c).coins,73);assert.equal(me(c).combatXp,99);assert.equal(me(c).name,'ChosenName');assert.equal(me(c).appearance,'sunset-name');assert.equal(me(c).aura,'astral-aura');
  const result=await fetch(origin+'/api/account/logout',{method:'POST',headers:{Cookie:cookie,Origin:origin,'Content-Type':'application/json'},body:'{}'});assert.equal(result.status,200);
  await until(()=>c.ws.readyState===WebSocket.CLOSED);assert.ok((await join(cookie)).error);
- console.log('PASS: required accounts reject guests and retired access keys; verified-cookie joins lock names, hide email/key, preserve wallet/appearance across crash, and revoke sessions on logout (seeded disposable identities, no external email or charges).');
+ console.log('PASS: required accounts reject guests and retired access keys; verified-cookie joins lock names, hide email/key, preserve wallet/nameplate/aura across crash, and revoke sessions on logout (seeded disposable identities, no external email or charges).');
 }finally{for(const ws of sockets)ws.close();await stop();}

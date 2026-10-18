@@ -46,3 +46,5 @@ Prefer measured improvements over broad rewrites. Explain any deliberate budget 
 `pnpm run package:local` remains a developer testing aid. Players ultimately join one hosted world; distributing this package starts separate worlds. Generated instructions derive skill/recipe counts from compiled catalogs so they match the packaged build.
 
 - [Email accounts and store](ACCOUNTS_AND_STORE.md): chosen-name email OTP accounts, browser Stripe checkout, operational setup and release limits.
+
+- [Astral aura storefront](ASTRAL_AURA_STORE.md): direct USD cosmetic pricing, visual preview and independent aura/nameplate selection.

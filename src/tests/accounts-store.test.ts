@@ -6,6 +6,48 @@ import { Accounts, emailAddress, accountName } from '../accounts.js';
 import { Commerce } from '../commerce.js';
 import { AccountHttp } from '../account-http.js';
 import { createServer } from 'node:http';
+import { PRODUCTS } from '../shared/shop.js';
+import { createPlayer, profileOf } from '../shared/world.js';
+import { gearStats } from '../shared/equipment.js';
+
+test('Astral aura is a server-priced one-time cosmetic, independently equipped and revoked without removing a nameplate', async () => {
+    const { db, accounts } = fixture();
+    try {
+        const account = accounts.register('a', 'aura@example.test', 'AuraWalker');
+        assert.equal(PRODUCTS.find(p => p.id === 'astral-aura')?.cents, 499);
+        assert.throws(() => accounts.select(account.id, 'astral-aura'));
+        const commerce = new Commerce(accounts, env, async (_url, init) => {
+            const body = new URLSearchParams(String(init?.body));
+            assert.equal(body.get('mode'), 'payment');
+            assert.equal(body.get('line_items[0][price_data][unit_amount]'), '499');
+            assert.equal(body.get('line_items[0][quantity]'), '1');
+            return new Response(JSON.stringify({ id: 'cs_test_aura', url: 'https://checkout.stripe.com/c/pay/aura' }));
+        });
+        await commerce.checkout(account, 'astral-aura');
+        const order = db.prepare('SELECT id FROM store_orders').get()!;
+        accounts.fulfill('paid-aura', String(order.id), 'cs_test_aura', 499, 'usd');
+        db.prepare("INSERT INTO store_orders (id,account,sku,amount,currency,session,status) VALUES ('name','a','sunset-name',499,'usd','cs_name','paid')").run();
+        accounts.select('a', 'sunset-name'); accounts.select('a', 'astral-aura');
+        assert.equal(accounts.byId('a')?.selected, 'sunset-name'); assert.equal(accounts.byId('a')?.aura, 'astral-aura');
+        const p = createPlayer('p', { coins: 73 }); const before = gearStats(p); p.aura = 'astral-aura';
+        assert.deepEqual(gearStats(p), before); assert.equal(p.coins, 73);
+        assert.equal(Object.hasOwn(profileOf(p), 'aura'), false, 'account cosmetic must not become a guest save entitlement');
+        accounts.revoke('refund-aura', String(order.id));
+        assert.equal(accounts.byId('a')?.aura, ''); assert.equal(accounts.byId('a')?.selected, 'sunset-name');
+        assert.throws(() => accounts.select('a', 'astral-aura'));
+        accounts.select('a', ''); assert.equal(accounts.byId('a')?.selected, '');
+    } finally { db.close(); }
+});
+
+test('adding the aura slot preserves existing account names, character links and selected cosmetics', () => {
+    const db = new DatabaseSync(':memory:');
+    try {
+        db.exec("CREATE TABLE accounts (id TEXT PRIMARY KEY,email TEXT UNIQUE NOT NULL,name TEXT NOT NULL,name_key TEXT UNIQUE NOT NULL,character TEXT UNIQUE NOT NULL,selected TEXT NOT NULL DEFAULT ''); INSERT INTO accounts VALUES ('old','old@example.test','OldHero','oldhero','private-character','sunset-name')");
+        const accounts = new Accounts(db);
+        assert.deepEqual({ ...accounts.byId('old') }, { id: 'old', name: 'OldHero', character: 'private-character', selected: 'sunset-name', aura: '' });
+        assert.equal(new Accounts(db).byId('old')?.selected, 'sunset-name', 'repeated startup is safe');
+    } finally { db.close(); }
+});
 
 function fixture() {
     const db = new DatabaseSync(':memory:'), accounts = new Accounts(db);
