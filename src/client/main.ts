@@ -159,9 +159,14 @@ function status(text: string, online: boolean) { $('connection').textContent = t
 function connect() {
     joinRejected = false;
     status('CONNECTING', false);
-    socket = new WebSocket(`${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/live`);
-    socket.addEventListener('open', () => socket!.send(JSON.stringify({ type: 'join', name: $<HTMLInputElement>('name').value, token: $<HTMLInputElement>('resume-key').value.trim() || store('scape-token') })));
-    socket.addEventListener('message', event => {
+    const connection = new WebSocket(`${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/live`);
+    socket = connection;
+    connection.addEventListener('open', () => {
+        if (socket !== connection) return;
+        connection.send(JSON.stringify({ type: 'join', name: $<HTMLInputElement>('name').value, token: $<HTMLInputElement>('resume-key').value.trim() || store('scape-token') }));
+    });
+    connection.addEventListener('message', event => {
+        if (socket !== connection) return;
         const message = JSON.parse(event.data);
         if (message.type === 'notice')
             toast(message.message);
@@ -204,14 +209,15 @@ function connect() {
             updateHud();
         }
     });
-    socket.addEventListener('close', () => {
+    connection.addEventListener('close', () => {
+        if (socket !== connection) return;
         status('CONNECTION LOST', false);
         keys.clear();
         mouseAttack = false;
         target = undefined;
         if (entered && !joinRejected) {
             toast('World connection lost. Reconnecting…');
-            setTimeout(() => { if (entered && !joinRejected) connect(); }, 1500);
+            setTimeout(() => { if (socket === connection && entered && !joinRejected) connect(); }, 1500);
         }
         else {
             if (!joinRejected)
@@ -219,7 +225,9 @@ function connect() {
             $<HTMLButtonElement>('join-button').disabled = false;
         }
     });
-    socket.addEventListener('error', () => status('WORLD UNAVAILABLE', false));
+    connection.addEventListener('error', () => {
+        if (socket === connection) status('WORLD UNAVAILABLE', false);
+    });
 }
 $<HTMLFormElement>('join-form').addEventListener('submit', event => {
     event.preventDefault();
