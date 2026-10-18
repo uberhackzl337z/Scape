@@ -15,3 +15,7 @@ Full local verification passed 100 rules/storage tests, boss simulation, asset/r
 ## Cloud development
 
 The owner authorized a dedicated cloud agent. Its standing prompt is [CLOUD_AGENT.md](CLOUD_AGENT.md). Initial responsibilities are persistence, network reconnects and economy integrity while the parent implements these UI/world changes. The existing daily cloud review remains at 10 a.m. America/Chicago; a duplicate optimization schedule was paused. Production account/payment/hosting activation remains on hold.
+
+## Coordinated persistence fix
+
+The cloud agent independently reproduced and fixed lost carried resources after an interrupted duel (PR10, head 2955ec730dd216b30e3cadf273a562f7ef6dd9a0; GitHub run 39087162454 passed). Its server capture now copies protected hauls and graceful shutdown retains duel membership before refund/cancellation. The six reviewed files are incorporated into this branch; combined verification includes 101 rules/storage tests and extended exact-haul crash/restart checks. Linux CI exercises real graceful signals; Windows child termination does not establish the same signal semantics. The agent documented earlier intermittent protocol-reader failures; further storage/read-race investigation remains a separate task. No owner saves were used in those tests.

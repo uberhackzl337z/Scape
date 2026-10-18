@@ -32,3 +32,7 @@ No browser/computer visual inspection, human balance test, load test, container 
 ## Runtime follow-up
 
 See PERFORMANCE.md and WILDERNESS_PVE.md for the next integrated runtime pass and its checks. Prioritize device frame profiling, reconnect pressure and a disposable full contract journey before expanding content. Proposed camp/event mechanics remain unimplemented.
+
+## Focused duel persistence follow-up
+
+See [DUEL_PERSISTENCE_REVIEW.md](DUEL_PERSISTENCE_REVIEW.md) and its feature PR for the cloud runtime/repository observations, baseline, reproduced lost-haul bug, capture/shutdown fix, regressions, validation and remaining review priorities. This pass is based directly on PR #9 at `b80ca759d4de0cde274ac0b96ff272d72b1be1c8`. Production activation remains paused; no parent-owned UI/world files were changed. Coordinate further work through repository notes and PRs.

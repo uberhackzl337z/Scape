@@ -1,4 +1,4 @@
-import { createPlayer, profileOf, type Profile } from './shared/world.js';
+import { createPlayer, profileOf, type Profile, type Player } from './shared/world.js';
 import { GEAR, GEAR_SLOTS, isGear } from './shared/equipment.js';
 import { DUEL_RULES } from './shared/duels.js';
 import { ITEM_IDS, stackLimit, isItem } from './shared/items.js';
@@ -104,4 +104,12 @@ export function recoverState(raw: unknown): {
         }
     }
     return { profiles, refunded, marketListings };
+}
+
+/** Carrying resources survive an interrupted duel, but ordinary disconnects
+ * still drop their haul in the world. Copy it so queued saves cannot alias play. */
+export function captureProfile(player: Player, preserveHaul = !!player.duelId): Profile {
+    const profile = profileOf(player);
+    if (preserveHaul) profile.duelBag = { ...player.bag };
+    return profile;
 }
