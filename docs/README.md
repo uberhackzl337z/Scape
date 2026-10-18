@@ -22,6 +22,9 @@ Keep new module filenames descriptive and in kebab-case. Use **Scape** in player
 
 ## Current reference documents
 
+- [Cloud agent instructions](CLOUD_AGENT.md): standing development/review prompt and production hold.
+- [World and equipment](WORLD_AND_EQUIPMENT.md): expanded bounds, frontier camps, body slots and validation.
+
 - [Development priorities](DEVELOPMENT_PRIORITIES.md): authorized work and constraints.
 - [Cloud handoff](CLOUD_HANDOFF.md): completed contracts/combat slice, checks and remaining work.
 - [Cloud development](CLOUD_DEVELOPMENT.md) and [status](CLOUD_STATUS.md): environment and automation boundaries.

@@ -5,6 +5,7 @@ import { renderBag } from './bag-view.js';
 import { CONTRACTS, complete, unlocked } from '../shared/contracts.js';
 import { ABILITIES, ENEMY_TACTICS } from '../shared/combat.js';
 import { gearStats } from '../shared/equipment.js';
+import { GROVES, EXPEDITIONS, expeditionAt } from '../shared/world-layout.js';
 import { paintBiomes, biomeAt } from './terrain-view.js';
 import { ElementView } from './element-view.js';
 import { MAP, World, WEAPONS, ENEMIES, bestWeapon, inBossArena, count, haulXp, distance, zone, level, xpForLevel, type WeaponId, type Snapshot, type Input, type Node, type Raider } from '../shared/world.js';
@@ -43,7 +44,7 @@ let hasJoined = false;
 let width = 0, height = 0, dpr = 1;
 let now = Date.now();
 let snapshotAt = performance.now(), gatherNow = now;
-let camera = { x: 800, y: 550 };
+let camera = { x: MAP.bankX, y: MAP.bankY };
 let zoom = .9;
 let toastUntil = 0;
 let lastMessage = 0;
@@ -347,7 +348,7 @@ canvas.addEventListener('pointerdown', event => {
     if (event.button === 2)
         castAbility();
     if (event.button === 1)
-        target = { x: Math.max(25, Math.min(MAP.width - 25, (mousePoint.x - width / 2) / zoom + camera.x)), y: Math.max(25, Math.min(MAP.height - 25, (mousePoint.y - height / 2) / zoom + camera.y)) };
+        target = { x: Math.max(MAP.minX + 25, Math.min(MAP.minX + MAP.width - 25, (mousePoint.x - width / 2) / zoom + camera.x)), y: Math.max(MAP.minY + 25, Math.min(MAP.minY + MAP.height - 25, (mousePoint.y - height / 2) / zoom + camera.y)) };
 });
 window.addEventListener('pointerup', event => {
     if (event.button === 0) {
@@ -395,7 +396,7 @@ function updateHud() {
     text('health-value', `${Math.ceil(p.hp)} / 100`);
     $('health-bar').style.width = `${p.hp}%`;
     const area = zone(p);
-    text('zone-label', inBossArena(p) ? 'The Warden’s Hollow' : area === 'wild' ? 'The Contested Crossing' : area === 'bank' ? 'The Last Bank' : biomeAt(p.x, p.y));
+    text('zone-label', inBossArena(p) ? 'The Warden’s Hollow' : expeditionAt(p)?.name ?? (area === 'wild' ? 'The Contested Crossing' : area === 'bank' ? 'The Last Bank' : biomeAt(p.x, p.y)));
     text('zone-description', area === 'wild' ? 'Your haul is at risk. Keep moving.' : area === 'bank' ? 'You made it. Secure your haul.' : 'Gather here. Bank your haul to earn XP.');
     text('zone-badge', area === 'wild' ? 'PVP ENABLED' : area === 'bank' ? 'SANCTUARY' : 'SAFE GROUND');
     $('zone-badge').className = `badge ${area === 'wild' ? 'danger' : area === 'bank' ? 'bank' : ''}`;
@@ -594,18 +595,19 @@ const terrain = document.createElement('canvas');
 terrain.width = MAP.width;
 terrain.height = MAP.height;
 const ground = terrain.getContext('2d')!;
+ground.translate(-MAP.minX, -MAP.minY);
 ground.fillStyle = '#354935';
-ground.fillRect(0, 0, 1600, 1100);
+ground.fillRect(MAP.minX, MAP.minY, MAP.width, MAP.height);
 paintBiomes(ground);
-for (let i = 0; i < 4300; i++) {
-    const x = random() * 1600, y = random() * 1100;
+for (let i = 0; i < 12000; i++) {
+    const x = MAP.minX + random() * MAP.width, y = MAP.minY + random() * MAP.height;
     ground.fillStyle = ['#46573a', '#2d4231', '#50603e', '#394d32'][i % 4];
     ground.fillRect(x, y, 2 + random() * 4, 1 + random() * 3);
 }
-for (const g of [{ x: 220, y: 240 }, { x: 240, y: 810 }, { x: 1370, y: 250 }, { x: 1360, y: 820 }, { x: 800, y: 100 }, { x: 800, y: 1000 }]) {
+for (const g of GROVES) {
     ground.beginPath();
     ground.moveTo(g.x, g.y);
-    ground.quadraticCurveTo((g.x + 800) / 2 + 70, (g.y + 550) / 2, 800, 550);
+    ground.quadraticCurveTo((g.x + MAP.bankX) / 2 + 70, (g.y + MAP.bankY) / 2, MAP.bankX, MAP.bankY);
     ground.strokeStyle = '#706e4c';
     ground.lineWidth = 30;
     ground.stroke();
@@ -873,9 +875,10 @@ function drawMini() {
         miniTerrain.getContext('2d')!.drawImage(terrain, 0, 0, 180, 124);
     }
     mctx.drawImage(miniTerrain, 0, 0);
-    const sx = 180 / 1600, sy = 124 / 1100;
+    const sx = 180 / MAP.width, sy = 124 / MAP.height;
     mctx.save();
     mctx.scale(sx, sy);
+    mctx.translate(-MAP.minX, -MAP.minY);
     for (const n of snapshot.nodes) {
         mctx.fillStyle = RESOURCES[n.kind].color;
         mctx.fillRect(n.x - 10, n.y - 10, 20, 20);
@@ -893,6 +896,7 @@ function drawMini() {
         mctx.arc(p.x, p.y, 20, 0, Math.PI * 2);
         mctx.fill();
     }
+    mctx.fillStyle = '#f2d99b'; mctx.fillRect(MAP.bankX - 20, MAP.bankY - 20, 40, 40);
     mctx.strokeStyle = '#ddd6ae55';
     mctx.lineWidth = 8;
     mctx.strokeRect(camera.x - width / zoom / 2, camera.y - height / zoom / 2, width / zoom, height / zoom);
@@ -913,15 +917,15 @@ function frame(time: number) {
         camera.y += (pos.y - camera.y) * (1 - Math.exp(-5 * dt));
     }
     const halfW = width / zoom / 2, halfH = height / zoom / 2;
-    camera.x = halfW > 800 ? 800 : Math.max(halfW, Math.min(1600 - halfW, camera.x));
-    camera.y = halfH > 550 ? 550 : Math.max(halfH, Math.min(1100 - halfH, camera.y));
+    camera.x = halfW > MAP.width / 2 ? MAP.bankX : Math.max(MAP.minX + halfW, Math.min(MAP.minX + MAP.width - halfW, camera.x));
+    camera.y = halfH > MAP.height / 2 ? MAP.bankY : Math.max(MAP.minY + halfH, Math.min(MAP.minY + MAP.height - halfH, camera.y));
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = '#23372b';
     ctx.fillRect(0, 0, width, height);
     ctx.translate(width / 2, height / 2);
     ctx.scale(zoom, zoom);
     ctx.translate(-camera.x, -camera.y);
-    ctx.drawImage(terrain, 0, 0);
+    ctx.drawImage(terrain, MAP.minX, MAP.minY);
     combatView.ground(snapshot, now);
     const activeDuel = snapshot.duels.find(d => d.phase !== 'finished');
     ctx.save();
