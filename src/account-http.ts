@@ -27,7 +27,7 @@ export class AccountHttp {
                     account: account ? { name: account.name } : null,
                     store: { enabled: this.commerce.checkoutEnabled, mode: this.commerce.mode, products: PRODUCTS,
                         terms: env.STORE_TERMS_URL ?? '', privacy: env.STORE_PRIVACY_URL ?? '', support: env.STORE_SUPPORT_EMAIL ?? '',
-                        owned: account ? accounts!.owned(account.id) : [], selected: account?.selected ?? '' } });
+                        owned: account ? accounts!.owned(account.id) : [], selected: account?.selected ?? '', selectedAura: account?.aura ?? '' } });
                 return true;
             }
             if (req.method !== 'POST') { reply(405, { error: 'Method not allowed.' }); return true; }

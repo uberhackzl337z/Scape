@@ -1,5 +1,6 @@
 import { nearestWithin, inView } from '../shared/spatial.js';
 import { AccountView } from './account-view.js';
+import { drawAstralAura } from './cosmetic-view.js';
 import { PRODUCTS } from '../shared/shop.js';
 import { renderBag } from './bag-view.js';
 import { CONTRACTS, complete, unlocked } from '../shared/contracts.js';
@@ -19,6 +20,7 @@ import { TownView } from './town-view.js';
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const canvas = $<HTMLCanvasElement>('world');
 const ctx = canvas.getContext('2d')!;
+const cosmeticMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 const combatView = new CombatView(ctx);
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const gatherView = new GatherView(ctx, reducedMotion.matches);
@@ -753,9 +755,10 @@ function actor(a: Actor) {
     const moving = isPlayer && Math.hypot(pos.x - a.x, pos.y - a.y) > 1;
     const gathering = isPlayer ? gatherPose(a, gatherNow) : undefined;
     const bob = gathering ? (gatherView.reducedMotion ? 0 : Math.sin(gathering.progress * Math.PI * 2) * 1.8) : moving ? Math.sin(now / 80) * 1.2 : Math.sin(now / 600) * .5;
-    if (isPlayer)
+    if (isPlayer) {
+        if (a.aura === 'astral-aura' && a.hp > 0) drawAstralAura(ctx, now, cosmeticMotion.matches);
         elementView.aura(a, now);
-    else
+    } else
         elementView.status(a, now);
     circle(0, 10, 17, '#12291c88');
     if (own) {

@@ -1,6 +1,7 @@
 import { randomBytes, createHash } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
-export type Account = { id: string; name: string; character: string; selected: string };
+import { PRODUCTS } from './shared/shop.js';
+export type Account = { id: string; name: string; character: string; selected: string; aura: string };
 const hash = (s: string) => createHash('sha256').update(s).digest('hex');
 export function accountName(value: unknown) {
     if (typeof value !== 'string' || !/^[a-zA-Z][a-zA-Z0-9_]{2,15}$/.test(value) || /^(admin|moderator|support|system|scape)$/i.test(value)) throw new Error('Choose 3–16 letters, numbers or underscores, starting with a letter. That name may be reserved.');
@@ -20,8 +21,10 @@ export class Accounts {
         const columns = db.prepare('PRAGMA table_info(store_orders)').all().map(c => c.name);
         if (!columns.includes('url')) db.exec('ALTER TABLE store_orders ADD COLUMN url TEXT');
         if (!columns.includes('expires')) db.exec('ALTER TABLE store_orders ADD COLUMN expires INTEGER NOT NULL DEFAULT 0');
+        if (!db.prepare('PRAGMA table_info(accounts)').all().some(c => c.name === 'aura'))
+            db.exec("ALTER TABLE accounts ADD COLUMN aura TEXT NOT NULL DEFAULT ''");
     }
-    byId(id: string): Account | undefined { return this.db.prepare('SELECT id,name,character,selected FROM accounts WHERE id=?').get(id) as Account | undefined; }
+    byId(id: string): Account | undefined { return this.db.prepare('SELECT id,name,character,selected,aura FROM accounts WHERE id=?').get(id) as Account | undefined; }
     bound(character: string) { return !!this.db.prepare('SELECT id FROM accounts WHERE character=?').get(character); }
     register(id: string, email: string, name: unknown, character?: string) {
         const existing = this.byId(id); if (existing) return existing;
@@ -50,7 +53,10 @@ export class Accounts {
     owned(id: string) { return this.db.prepare("SELECT DISTINCT sku FROM store_orders WHERE account=? AND status='paid'").all(id).map(row => String(row.sku)); }
     select(id: string, sku: string) {
         if (sku && !this.owned(id).includes(sku)) throw new Error('This appearance is not owned.');
-        this.db.prepare('UPDATE accounts SET selected=? WHERE id=?').run(sku, id);
+        if (!sku) { this.db.prepare("UPDATE accounts SET selected='',aura='' WHERE id=?").run(id); return; }
+        const product = PRODUCTS.find(p => p.id === sku);
+        if (!product) throw new Error('Unknown appearance.');
+        this.db.prepare(product.kind === 'aura' ? 'UPDATE accounts SET aura=? WHERE id=?' : 'UPDATE accounts SET selected=? WHERE id=?').run(sku, id);
     }
     fulfill(event: string, orderId: string, session: string, amount: number, currency: string) {
         this.db.exec('BEGIN IMMEDIATE');
@@ -72,7 +78,10 @@ export class Accounts {
             if (!this.db.prepare('SELECT id FROM store_events WHERE id=?').get(event)) {
                 this.db.prepare('INSERT INTO store_events VALUES (?)').run(event);
                 this.db.prepare("UPDATE store_orders SET status='revoked' WHERE id=?").run(orderId);
-                if (!this.owned(String(order.account)).includes(String(order.sku))) this.db.prepare('UPDATE accounts SET selected=\'\' WHERE id=? AND selected=?').run(order.account, order.sku);
+                if (!this.owned(String(order.account)).includes(String(order.sku))) {
+                    this.db.prepare("UPDATE accounts SET selected='' WHERE id=? AND selected=?").run(order.account, order.sku);
+                    this.db.prepare("UPDATE accounts SET aura='' WHERE id=? AND aura=?").run(order.account, order.sku);
+                }
             }
             this.db.exec('COMMIT');
         } catch (error) { this.db.exec('ROLLBACK'); throw error; }
