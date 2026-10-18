@@ -38,18 +38,25 @@ await writeFile(join(target, 'package.json'), JSON.stringify({
 }, null, 2) + '\n');
 await writeFile(join(target, 'START-LOCAL.cmd'), [
   '@echo off', 'setlocal', 'cd /d "%~dp0"',
-  'node --input-type=module -e "const [a,b]=process.versions.node.split(\'.\').map(Number);process.exit(a>24||a===24&&b>=12?0:1)" >nul 2>nul',
+  'set "GAME_NODE=%USERPROFILE%\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\node\\bin\\node.exe"',
+  'if not exist "%GAME_NODE%" set "GAME_NODE=node"',
+  '"%GAME_NODE%" --input-type=module -e "const [a,b]=process.versions.node.split(\'.\').map(Number);process.exit(a>24||a===24&&b>=12?0:1)" >nul 2>nul',
   'if errorlevel 1 (',
   '  echo Install Node.js 24.12 or newer from https://nodejs.org/ first.',
   '  pause', '  exit /b 1', ')',
+  'for %%V in (SUPABASE_URL SUPABASE_ANON_KEY STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET STORE_SUPPORT_EMAIL STORE_TERMS_URL STORE_PRIVACY_URL PUBLIC_ORIGIN) do set "%%V="',
+  'set "APP_ENV=demo"', 'set "ACCOUNTS_REQUIRED=0"', 'set "ALLOW_GUEST_ALPHA=1"',
+  'set "STORE_MODE=test"', 'set "STORE_LIVE_ENABLED=0"', 'set "STORE_CHANNEL=browser"',
+  'set "STORAGE=sqlite"', 'set "WORLD_ID=scape-demo"', 'set "WORLD_NAME=Scape Demo"', 'set "MAX_PLAYERS=16"',
   'set "HOST=127.0.0.1"', 'set "PORT=3030"', 'set "DATA_DIR=%~dp0data"',
   'echo Keep this window open. When ready, open http://127.0.0.1:3030/ in your browser.',
-  'node dist\server.js', 'pause', ''
+  '"%GAME_NODE%" dist/server.js', 'pause', ''
 ].join('\r\n'));
 await writeFile(join(target, 'README.txt'), `Scape ${pkg.version} - LOCAL TEST BUILD
 
 Requirements: Node.js 24.12 or newer (https://nodejs.org/) and a desktop browser.
 Node.js is NOT bundled. No compiler, package install, Steam account or payment needed.
+On the development PC the launcher can use Codex's existing Node runtime.
 Extract the entire ZIP first; do not run inside the ZIP viewer.
 
 Windows: double-click START-LOCAL.cmd, keep the window open, then open
@@ -73,7 +80,8 @@ Includes ${Object.keys(SKILLS).length} trainable skills, ${RECIPES.length} recip
 expedition contracts, gathering, bank, PvE/boss combat, PvP/earned-coin duels,
 market and world high scores. Duel coins are earned only; no cash-out.
 Optional email accounts/appearance checkout require separate provider configuration;
-this package contains no provider secrets or enabled billing settings.
+this package contains no provider secrets or enabled billing settings. The Windows
+demo launcher explicitly disables email sign-in and payments, including inherited keys.
 Prototype balance, temporary identities, local save files; not a commercial release.
 No existing player saves, authentication secrets, backups or development tools included.
 

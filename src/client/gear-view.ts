@@ -42,19 +42,28 @@ export class GearView {
         get('gear-access').textContent = atBank ? 'Bank sanctuary · equipment changes available' : 'Inspect anywhere. Equip and unequip at the bank, alive and outside a duel.';
         get('gear-feedback').textContent = p.message;
         const weapon = el('article', '', 'paper-slot');
+        weapon.dataset.slot = 'weapon';
+        weapon.classList.add('occupied');
         weapon.append(el('span', 'MAIN HAND', 'eyebrow'), el('strong', WEAPONS[p.weapon].name), el('small', 'Choose with 1–5 or the weapon bar'));
         const slots: HTMLElement[] = [weapon];
         for (const slot of GEAR_SLOTS) {
             const id = p.equipment[slot], card = el('article', '', 'paper-slot');
+            card.dataset.slot = slot;
+            card.classList.toggle('occupied', !!id);
             card.append(el('span', slot.toUpperCase(), 'eyebrow'), el('strong', id ? GEAR[id].name : 'Empty slot'));
             if (id) {
                 const g = GEAR[id];
                 card.style.borderColor = RARITIES[g.rarity].color;
+                card.style.setProperty('--slot-color', RARITIES[g.rarity].color);
                 card.append(el('small', `T${g.rarity} ${RARITIES[g.rarity].name} · ${g.armor} armor · +${g.power} power`));
             }
             slots.push(card);
+            const bodyPart = document.querySelector<SVGElement>(`[data-body-slot="${slot}"]`)!;
+            bodyPart.classList.toggle('occupied', !!id);
+            bodyPart.style.setProperty('--slot-color', id ? RARITIES[GEAR[id].rarity].color : '#75816f');
         }
         get('gear-slots').replaceChildren(...slots);
+        get('gear-body-status').textContent = `${GEAR_SLOTS.filter(slot => p.equipment[slot]).length} / 4 armor and accessory slots filled · ${WEAPONS[p.weapon].name} equipped`;
         const cards: HTMLElement[] = [];
         for (const id of Object.keys(GEAR) as GearId[]) {
             const g = GEAR[id], n = p.items[id];

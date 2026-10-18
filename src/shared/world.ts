@@ -1,4 +1,6 @@
 import { nearestWithin } from './spatial.js';
+import { MAP, GROVES, EXPEDITIONS, expeditionAt } from './world-layout.js';
+export { MAP } from './world-layout.js';
 import { readJournal, advance, complete, unlocked, CONTRACTS, type Journal } from './contracts.js';
 import { WEAPONS, ENEMIES, ABILITIES, isWeapon, angleGap, type WeaponId, type EnemyKind } from './combat.js';
 import { DuelSystem, type DuelOffer, type Duel } from './duels.js';
@@ -11,7 +13,6 @@ import { GEAR, GEAR_SLOTS, gearStats, isGear, normalizeEquipment, elementalPower
 import { stackLimit } from './items.js';
 export { WEAPONS, ENEMIES } from './combat.js';
 export type { WeaponId, EnemyKind } from './combat.js';
-export const MAP = { width: 1600, height: 1100, bankX: 800, bankY: 550, safeRadius: 96, dangerRadius: 330, bossX: 1360, bossY: 550, bossRadius: 170 };
 export type { Resource } from './skills.js';
 export type Bag = {
     wood: number;
@@ -193,7 +194,7 @@ export const inBossArena = (p: {
 export const zone = (p: {
     x: number;
     y: number;
-}): 'bank' | 'wild' | 'grove' => bankDistance(p) <= MAP.safeRadius ? 'bank' : bankDistance(p) < MAP.dangerRadius || inBossArena(p) ? 'wild' : 'grove';
+}): 'bank' | 'wild' | 'grove' => bankDistance(p) <= MAP.safeRadius ? 'bank' : bankDistance(p) < MAP.dangerRadius || inBossArena(p) || expeditionAt(p) ? 'wild' : 'grove';
 export const level = (xp: number) => 1 + Math.floor(Math.sqrt(xp / 40));
 export const xpForLevel = (n: number) => 40 * (n - 1) ** 2;
 export const cleanInput = (raw: unknown): Input => {
@@ -491,9 +492,9 @@ export class World {
     events: string[] = ['The Hollow Warden watches the eastern ruins.'];
     private serial = 0;
     private contributions = new Map<string, Map<string, number>>();
+    private enemyHomes = new Map<string, { x: number; y: number; radius: number }>();
     constructor() {
-        const groves = [{ x: 220, y: 240 }, { x: 240, y: 810 }, { x: 1370, y: 250 }, { x: 1360, y: 820 }, { x: 800, y: 100 }, { x: 800, y: 1000 }];
-        for (const [g, center] of groves.entries())
+        for (const [g, center] of GROVES.entries())
             for (let n = 0; n < 7; n++) {
                 const angle = n * 2.4, radius = 30 + (n % 3) * 33;
                 this.nodes.push({ id: `n${g}-${n}`, x: center.x + Math.cos(angle) * radius, y: center.y + Math.sin(angle) * radius, kind: (n + g) % 3 === 0 ? 'ore' : 'wood', stock: 6, readyAt: 0 });
@@ -505,9 +506,24 @@ export class World {
         ][] = [['rawFish', 135, 400], ['rawFish', 1460, 395], ['berries', 295, 570], ['berries', 1305, 965], ['herb', 340, 680], ['herb', 1230, 170], ['hide', 380, 350], ['hide', 1450, 740], ['grain', 220, 960], ['grain', 1030, 130], ['flax', 345, 940], ['flax', 1130, 950], ['clay', 100, 690], ['clay', 1475, 1000], ['crystal', 250, 100], ['crystal', 1400, 80]];
         for (const [kind, x, y] of extra)
             this.nodes.push({ id: `resource-${kind}-${x}`, kind, x, y, stock: 6, readyAt: 0 });
+        // New resource sites stay outside marked combat camps: gather freely, risk the bank trip.
+        const frontier: [Resource, number, number][] = [
+            ['rawFish', -620, 440], ['rawFish', 2220, 410], ['berries', -610, -390], ['herb', -510, -400],
+            ['hide', -650, 840], ['grain', -510, 1430], ['flax', -390, 1430], ['clay', -650, 720],
+            ['crystal', 2180, -380], ['ore', 2070, -380], ['herb', 2290, -200], ['crystal', 2190, 1470],
+            ['rawFish', 1580, 1440], ['hide', 2320, 1120], ['grain', 710, 1510], ['flax', 840, 1510]
+        ];
+        for (const [kind, x, y] of frontier)
+            this.nodes.push({ id: `frontier-${kind}-${x}`, kind, x, y, stock: 6, readyAt: 0 });
         for (const [n, kind] of (['skirmisher', 'hunter', 'brute'] as const).entries())
             this.raiders.push(createEnemy(kind, `r${n}`, 800 + Math.cos(n * 2.1) * 230, 550 + Math.sin(n * 2.1) * 230, n * 2.1));
         this.raiders.push(createEnemy('boss', 'warden', MAP.bossX, MAP.bossY));
+        for (const camp of EXPEDITIONS)
+            camp.kinds.forEach((kind, i) => {
+                const id = `${camp.id}-${i}`;
+                this.raiders.push(createEnemy(kind, id, camp.x + (i ? 60 : -60), camp.y, i * 2.1));
+                this.enemyHomes.set(id, camp);
+            });
     }
     say(p: Player, text: string, now: number) { p.message = text; p.messageUntil = now + 3000; }
     event(text: string) { this.events.unshift(text); this.events.length = Math.min(this.events.length, 6); }
@@ -799,8 +815,8 @@ export class World {
             if (p.input.dodge)
                 this.dodge(p, now);
             const dodging = now < p.dodgeUntil, speed = dodging ? 560 : p.duelId || zone(p) === 'wild' ? 175 : 195;
-            p.x = Math.max(25, Math.min(MAP.width - 25, p.x + (dodging ? p.dodgeX : p.input.x) * speed * dt));
-            p.y = Math.max(25, Math.min(MAP.height - 25, p.y + (dodging ? p.dodgeY : p.input.y) * speed * dt));
+            p.x = Math.max(MAP.minX + 25, Math.min(MAP.minX + MAP.width - 25, p.x + (dodging ? p.dodgeX : p.input.x) * speed * dt));
+            p.y = Math.max(MAP.minY + 25, Math.min(MAP.minY + MAP.height - 25, p.y + (dodging ? p.dodgeY : p.input.y) * speed * dt));
             if (!dodging && (p.input.x || p.input.y))
                 p.facing = Math.atan2(p.input.y, p.input.x);
             if (!p.duelId && zone(p) !== 'wild')
@@ -863,11 +879,12 @@ export class World {
         this.projectiles = this.projectiles.filter(b => b.expires > now);
         for (const r of this.raiders) {
             const stats = ENEMIES[r.kind];
+            const home = this.enemyHomes.get(r.id);
             if (r.hp <= 0) {
                 if (now >= r.respawnAt) {
                     r.hp = stats.hp;
-                    r.x = r.kind === 'boss' ? MAP.bossX : 800 + Math.cos(r.phase) * 245;
-                    r.y = r.kind === 'boss' ? MAP.bossY : 550 + Math.sin(r.phase) * 245;
+                    r.x = home ? home.x + Math.cos(r.phase) * 60 : r.kind === 'boss' ? MAP.bossX : MAP.bankX + Math.cos(r.phase) * 245;
+                    r.y = home ? home.y + Math.sin(r.phase) * 60 : r.kind === 'boss' ? MAP.bossY : MAP.bankY + Math.sin(r.phase) * 245;
                     r.lastEngaged = 0;
                     r.attackCount = 0;
                     r.burnUntil = r.chillUntil = r.stunUntil = 0;
@@ -892,7 +909,7 @@ export class World {
             }
             if (now < r.stunUntil || now < r.staggerUntil || this.warnings.some(w => w.source === r.id))
                 continue;
-            const destination = target ?? (r.kind === 'boss' ? { x: MAP.bossX, y: MAP.bossY } : { x: 800 + Math.cos(now / 9000 + r.phase) * 240, y: 550 + Math.sin(now / 9000 + r.phase) * 240 });
+            const destination = target ?? (home ? { x: home.x + Math.cos(now / 9000 + r.phase) * 85, y: home.y + Math.sin(now / 9000 + r.phase) * 85 } : r.kind === 'boss' ? { x: MAP.bossX, y: MAP.bossY } : { x: MAP.bankX + Math.cos(now / 9000 + r.phase) * 240, y: MAP.bankY + Math.sin(now / 9000 + r.phase) * 240 });
             const d = distance(r, destination), preferred = r.kind === 'hunter' ? 180 : r.kind === 'boss' ? 88 : 38;
             r.facing = Math.atan2(destination.y - r.y, destination.x - r.x);
             if (target && d < stats.reach + (r.kind === 'boss' && r.attackCount % 2 === 1 ? 180 : 0) && now >= r.attackAt) {
@@ -903,7 +920,7 @@ export class World {
             if (d > 1 && direction) {
                 const speed = (target ? stats.speed * (r.kind === 'boss' && r.hp < stats.hp / 2 ? 1.35 : 1) : r.kind === 'boss' ? 40 : 36) * (now < r.chillUntil ? 1 - r.chillSlow : 1);
                 const x = r.x + (destination.x - r.x) / d * dt * speed * direction, y = r.y + (destination.y - r.y) / d * dt * speed * direction;
-                if (zone({ x, y }) === 'wild' && (r.kind === 'boss' ? inBossArena({ x, y }) : !inBossArena({ x, y }))) {
+                if ((!home || distance(home, { x, y }) < home.radius - 20) && zone({ x, y }) === 'wild' && (r.kind === 'boss' ? inBossArena({ x, y }) : !inBossArena({ x, y }))) {
                     r.x = x;
                     r.y = y;
                 }
