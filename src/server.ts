@@ -11,7 +11,7 @@ import { resolve, extname, sep } from 'node:path';
 import { randomUUID, randomBytes } from 'node:crypto';
 import { WebSocketServer, WebSocket } from 'ws';
 import { World, createPlayer, cleanInput, profileOf, zone, count, type Profile } from './shared/world.js';
-import { recoverState, type SaveState, type EscrowRecord } from './persistence.js';
+import { captureProfile, recoverState, type SaveState, type EscrowRecord } from './persistence.js';
 import { buildLeaderboards, queryScores } from './shared/leaderboards.js';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const config = serverConfig(process.env);
@@ -23,6 +23,7 @@ const clients = new Map<WebSocket, string>();
 const accountSessions = new Map<WebSocket, string>();
 const storage = new WorldStore(resolve(process.env.DATA_DIR ?? resolve(root, 'data')), config.storage, config.worldId);
 let storageHealthy = true;
+let stopping = false;
 try {
     const saved = await storage.open();
     const recovered = saved === undefined ? { profiles: new Map<string, Profile>(), marketListings: [], refunded: 0 } : recoverState(saved);
@@ -41,17 +42,17 @@ catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT')
         throw new Error('Could not load saved profiles; the existing save has been left untouched.', { cause: error });
 }
-function capture() {
+function capture(preserveHauls?: ReadonlySet<string>) {
     for (const [id, token] of tokens) {
         const p = world.players.get(id);
         if (p)
-            profiles.set(token, profileOf(p));
+            profiles.set(token, captureProfile(p, !!p.duelId || !!preserveHauls?.has(id)));
     }
 }
 let saving = Promise.resolve();
 let savedEconomyRevision = -1;
-function save() {
-    capture();
+function save(preserveHauls?: ReadonlySet<string>) {
+    capture(preserveHauls);
     const escrows: EscrowRecord[] = world.dueling.matches.filter(d => d.phase !== 'finished').map(d => ({ id: d.id, tokens: [tokens.get(d.players[0])!, tokens.get(d.players[1])!], wager: d.wager }));
     const snapshot: SaveState = { version: 5, profiles: Object.fromEntries(profiles), escrows, marketListings: world.market.listings };
     const data = JSON.stringify(snapshot);
@@ -135,6 +136,7 @@ wss.on('connection', (ws, req) => {
             ws.close(1008, 'Join required');
     }, 5000);
     ws.on('message', raw => {
+        if (stopping) return;
         const now = Date.now();
         if (now - windowAt > 1000) {
             windowAt = now;
@@ -178,7 +180,7 @@ wss.on('connection', (ws, req) => {
                 clients.set(ws, id);
                 joined = true;
                 clearTimeout(timer);
-                profiles.set(token, profileOf(p));
+                profiles.set(token, captureProfile(p));
                 world.leaderboards = buildLeaderboards(profiles.values(), world.players.values());
                 ws.send(JSON.stringify({ type: 'welcome', id, ...(account ? { account: true } : { token }), name: p.name, world: { id: config.worldId, name: config.worldName } }));
                 ws.send(JSON.stringify({ type: 'state', ...world.snapshot(now) }));
@@ -239,6 +241,7 @@ wss.on('connection', (ws, req) => {
     ws.on('close', () => {
         accountSessions.delete(ws);
         clearTimeout(timer);
+        if (stopping) return; // Final shutdown snapshot already owns duel refunds and hauls.
         const id = clients.get(ws);
         if (id) {
             const p = world.players.get(id);
@@ -296,11 +299,15 @@ if (!storageHealthy)
     throw new Error('World storage unavailable; refusing to start.');
 server.listen(port, host, () => console.log(`Scape is ready: http://${host}:${port}`));
 async function stop() {
+    if (stopping) return;
+    stopping = true;
     clearInterval(loop);
     clearInterval(saves);
     clearInterval(heartbeats);
+    // Cancellation clears duelId; retain the protected haul in the final save.
+    const duelists = new Set([...world.players.values()].filter(p => p.duelId).map(p => p.id));
     world.dueling.cancelAll(Date.now());
-    await save();
+    await save(duelists);
     for (const ws of wss.clients)
         ws.close();
     server.close(() => process.exit(0));
