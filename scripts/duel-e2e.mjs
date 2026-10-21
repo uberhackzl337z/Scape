@@ -4,6 +4,7 @@ import {spawn} from 'node:child_process';
 import {mkdir,mkdtemp,readFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import WebSocket from 'ws';
+import { reportCheckpointFailure } from './checkpoint-diagnostics.mjs';
 const storage=process.env.TEST_STORAGE??'json';
 const port=Number(process.env.TEST_PORT??3031),origin=`http://127.0.0.1:${port}`;
 await mkdir('artifacts',{recursive:true});const dataDir=await mkdtemp(resolve('artifacts/duel-test-'));
@@ -18,7 +19,12 @@ const stop=c=>send(c,{type:'input',x:0,y:0});
 async function drive(c,destination,done,extra={},limit=18000){let error;const step=()=>{try{const p=me(c),d=typeof destination==='function'?destination():destination,dx=d.x-p.x,dy=d.y-p.y,len=Math.hypot(dx,dy);const imminent=c.state.warnings.some(w=>w.at-c.state.time>0&&w.at-c.state.time<180&&Math.hypot(w.x-p.x,w.y-p.y)<w.radius);send(c,{type:'input',x:len>8?dx/len:0,y:len>8?dy/len:0,attack:true,weapon:'spear',dodge:imminent,...extra});}catch(e){error=e;}};step();const timer=setInterval(step,50);try{await until(()=>{if(error)throw error;return done();},limit);}finally{clearInterval(timer);stop(c);}}
 async function move(c,point){await drive(c,point,()=>Math.hypot(me(c).x-point.x,me(c).y-point.y)<13);}
 async function earn(c){const p=me(c),node=c.state.nodes.filter(n=>n.kind==='wood'&&n.stock>=2).sort((a,b)=>Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y))[0];await move(c,node);await drive(c,node,()=>me(c).bag.wood>=2,{interact:true,attack:false});await move(c,{x:800,y:550});await drive(c,{x:800,y:550},()=>me(c).bag.wood===0&&me(c).coins>=10,{interact:true});}
-async function agree(a,b){const pa={x:630,y:460},pb={x:630,y:640},near=(c,p)=>Math.hypot(me(c).x-p.x,me(c).y-p.y)<13,bothReady=()=>near(a,pa)&&near(b,pb);await Promise.all([drive(a,pa,bothReady,{dodge:false}),drive(b,pb,bothReady,{dodge:false})]);send(a,{type:'duel',action:'offer',targetId:b.id,wager:10});await until(()=>b.state.duelOffers.some(o=>o.to===b.id)).catch(error=>{console.error('Consent checkpoint', {players:[a,b].map(c=>({hp:me(c).hp,x:me(c).x,y:me(c).y,coins:me(c).coins,message:me(c).message})),offers:b.state.duelOffers,duels:b.state.duels});throw error;});const offer=b.state.duelOffers.find(o=>o.to===b.id);send(b,{type:'duel',action:'accept',offerId:offer.id,wager:500,pot:99999});await until(()=>a.state.duels.some(d=>d.phase!=='finished'));return a.state.duels.find(d=>d.phase!=='finished');}
+async function agree(a,b){const pa={x:630,y:460},pb={x:630,y:640},near=(c,p)=>Math.hypot(me(c).x-p.x,me(c).y-p.y)<13,bothReady=()=>near(a,pa)&&near(b,pb);await Promise.all([drive(a,pa,bothReady,{dodge:false}),drive(b,pb,bothReady,{dodge:false})]);send(a,{type:'duel',action:'offer',targetId:b.id,wager:10});await until(()=>b.state.duelOffers.some(o=>o.to===b.id)).catch(error=>reportCheckpointFailure('Consent checkpoint',error,{
+  players:()=>[a,b].map(c=>({hp:me(c).hp,x:me(c).x,y:me(c).y,coins:me(c).coins,message:me(c).message})),
+  offers:()=>b.state.duelOffers,
+  duels:()=>b.state.duels,
+  server:()=>({exitCode:child?.exitCode,signalCode:child?.signalCode}),
+}));const offer=b.state.duelOffers.find(o=>o.to===b.id);send(b,{type:'duel',action:'accept',offerId:offer.id,wager:500,pot:99999});await until(()=>a.state.duels.some(d=>d.phase!=='finished'));return a.state.duels.find(d=>d.phase!=='finished');}
 try{
  await boot();const a=await join('Duel test A'),b=await join('Duel test B');
  await Promise.all([earn(a),earn(b)]);const total=me(a).coins+me(b).coins;assert.ok(total>=20);console.log('PASS: two clients earned wager coins through gathering and banking.');
@@ -36,7 +42,21 @@ try{
  assert.ok(node);await move(b,node);await drive(b,node,()=>me(b).bag.wood>=2,{interact:true,attack:false});
  const bagBefore={...me(b).bag};
  const beforeA=me(a).coins,beforeB=me(b).coins;await agree(a,b);
- await until(async()=>{try{const saved=await readSave();return saved.escrows.length===1&&saved.profiles[a.token].coins===beforeA-10&&saved.profiles[b.token].coins===beforeB-10;}catch{return false;}}).catch(async error=>{const saved=await readSave();console.error('Escrow checkpoint', {beforeA,beforeB,wallets:Object.values(saved.profiles).map(p=>p.coins),escrowCount:saved.escrows.length,duels:a.state.duels,players:a.state.players.map(p=>({id:p.id,hp:p.hp,coins:p.coins,bag:p.bag}))});throw error;});
+ let lastSaveError;
+ await until(async()=>{
+  try{
+   const saved=await readSave();
+   lastSaveError=undefined;
+   return saved.escrows.length===1&&saved.profiles[a.token].coins===beforeA-10&&saved.profiles[b.token].coins===beforeB-10;
+  }catch(error){lastSaveError=error;return false;}
+ }).catch(error=>reportCheckpointFailure('Escrow checkpoint',error,{
+  lastReaderError:()=>lastSaveError?String(lastSaveError):'none',
+  persisted:async()=>{const saved=await readSave();return {wallets:Object.values(saved.profiles).map(p=>p.coins),escrowCount:saved.escrows.length};},
+  expectedWallets:()=>({beforeA,beforeB,afterA:beforeA-10,afterB:beforeB-10}),
+  duels:()=>a.state.duels,
+  players:()=>a.state.players.map(p=>({id:p.id,hp:p.hp,coins:p.coins,bag:p.bag})),
+  server:()=>({exitCode:child?.exitCode,signalCode:child?.signalCode}),
+ }));
  await kill();await boot();const resumedA=await join('Duel test A',a.token),resumedB=await join('Duel test B',b.token);assert.equal(me(resumedA).coins,beforeA);assert.equal(me(resumedB).coins,beforeB);assert.equal(me(resumedA).duelWins,1);assert.deepEqual(me(resumedB).bag,bagBefore,'crash recovery preserves the escrowed duelist haul');
  const recovered=await readSave();assert.equal(recovered.escrows.length,0);console.log('PASS: forced server interruption refunded both saved stakes and retained the prior win and carried haul.');
  await agree(resumedA,resumedB);await kill('SIGTERM');await boot();

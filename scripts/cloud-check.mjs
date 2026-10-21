@@ -22,6 +22,7 @@ await run('Browser download budget', ['scripts/asset-report.mjs']);
 const tests = (await readdir('dist/tests')).filter(name => name.endsWith('.test.js')).sort().map(name => `dist/tests/${name}`);
 if (!tests.length) throw new Error('No compiled rules/storage tests found');
 await run('Rules and persistence', ['--test', ...tests]);
+await run('Checkpoint diagnostic regressions', ['--test', 'scripts/checkpoint-diagnostics.test.mjs']);
 await run('Solo boss simulation', ['scripts/boss-balance.mjs']);
 
 await mkdir('artifacts', { recursive: true });

@@ -36,3 +36,10 @@ See PERFORMANCE.md and WILDERNESS_PVE.md for the next integrated runtime pass an
 ## Focused duel persistence follow-up
 
 See [DUEL_PERSISTENCE_REVIEW.md](DUEL_PERSISTENCE_REVIEW.md) and its feature PR for the cloud runtime/repository observations, baseline, reproduced lost-haul bug, capture/shutdown fix, regressions, validation and remaining review priorities. This pass is based directly on PR #9 at `b80ca759d4de0cde274ac0b96ff272d72b1be1c8`. Production activation remains paused; no parent-owned UI/world files were changed. Coordinate further work through repository notes and PRs.
+
+## October 21 diagnostic continuation (pending CI)
+
+- Baseline remains PR #11 `scape-world-equipment-agent` at `8c4bed031ca3eb2185edc5ca660ca4c041224532`, including the PR #10 duel-haul fix. PRs #12 (reconnect) and #13 (cosmetic aura) pass independently but are not combined; no edits were made to their files. PR #8's duplicate heartbeat implementation remains separate with a failing equipment E2E check.
+- The pre-existing `fix/duel-checkpoint-reporting-20261020` branch contained only a failure-preserving helper. This continuation wires it into the consent and SQLite escrow checkpoint failure paths, independently captures reader/server/snapshot diagnostics, and adds three deterministic regression tests to `verify:cloud`. No gameplay or persistence format is changed.
+- Connected GitHub access and current-head Actions evidence were observed; the published `/workspace/Scape` environment was **not** mounted in this run. The available container had Node 22.16.0, no pinned pnpm and no GitHub DNS access. Pinned Node24.19.0/pnpm10.28.0 and `pnpm run verify:cloud` were **not** executed here. GitHub Actions verification is required on the proposed PR before this change is considered verified. No browser playtest is needed for test-only diagnostics.
+- Next: inspect new PR's exact-head Actions result, address any regression, and keep the incomplete branch unmerged until checks pass. Continue next rotation with reconnect and escrow integration without overlapping PR #12 or PR #13.
